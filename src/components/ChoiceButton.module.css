@@ -1,0 +1,48 @@
+.choice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 16px 18px;
+  border: 3px solid #efe6d6;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 17px;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    transform 0.12s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.large {
+  font-size: 34px;
+  padding: 20px;
+}
+
+.choice:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.choice:disabled {
+  cursor: not-allowed;
+}
+
+.correct {
+  border-color: var(--color-correct);
+  background: var(--color-correct-bg);
+  color: var(--color-correct);
+}
+
+.wrong {
+  border-color: var(--color-wrong);
+  background: var(--color-wrong-bg);
+  color: var(--color-wrong);
+}
+
+.dimmed {
+  opacity: 0.45;
+}

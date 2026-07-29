@@ -1,0 +1,67 @@
+:root {
+  --color-bg: #fff8ec;
+  --color-surface: #ffffff;
+  --color-text: #33302b;
+  --color-text-soft: #78726a;
+
+  --color-primary: #45b57e;
+  --color-primary-dark: #2f9d67;
+  --color-primary-soft: #e3f6ec;
+
+  --color-yellow: #ffb84c;
+  --color-yellow-soft: #fff1d9;
+  --color-blue: #4da6ff;
+  --color-blue-soft: #e4f2ff;
+  --color-pink: #ff6f91;
+  --color-pink-soft: #ffe7ed;
+  --color-purple: #9b6bff;
+  --color-purple-soft: #efe7ff;
+
+  --color-correct: #2f9d67;
+  --color-correct-bg: #e3f6ec;
+  --color-wrong: #e0554b;
+  --color-wrong-bg: #fdeae8;
+
+  --radius-lg: 28px;
+  --radius-md: 20px;
+  --radius-sm: 12px;
+
+  --shadow-soft: 0 10px 24px rgba(60, 40, 10, 0.08);
+  --shadow-pop: 0 14px 30px rgba(60, 40, 10, 0.14);
+
+  --font-family:
+    'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui,
+    -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-family);
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+button {
+  font-family: inherit;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}

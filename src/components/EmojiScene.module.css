@@ -1,0 +1,15 @@
+.frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-soft);
+  margin-bottom: 20px;
+}
+
+.item {
+  position: absolute;
+  line-height: 1;
+  user-select: none;
+}

@@ -1,0 +1,41 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.intro {
+  text-align: center;
+  font-size: 16px;
+  color: var(--color-text-soft);
+  margin-bottom: 8px;
+}
+
+.puzzleCard {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 20px;
+  border: none;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.12s ease;
+}
+
+.puzzleCard:active {
+  transform: scale(0.98);
+}
+
+.puzzleEmoji {
+  font-size: 36px;
+}
+
+.puzzleTitle {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--color-text);
+}

@@ -1,0 +1,94 @@
+.title {
+  text-align: center;
+  font-size: 22px;
+  font-weight: 800;
+  margin-bottom: 16px;
+}
+
+.ttsBar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.ttsControls {
+  display: flex;
+  gap: 10px;
+}
+
+.ttsSmallBtn {
+  border: 2px solid var(--color-blue);
+  background: white;
+  color: var(--color-blue);
+  border-radius: var(--radius-sm);
+  padding: 8px 16px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.ttsNote {
+  text-align: center;
+  color: var(--color-text-soft);
+  font-size: 14px;
+}
+
+.story {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  box-shadow: var(--shadow-soft);
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.story p {
+  font-size: 17px;
+  line-height: 1.7;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.exitLink {
+  background: none;
+  border: none;
+  color: var(--color-text-soft);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 8px;
+}
+
+.kindLabel {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--color-blue);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.question {
+  font-size: 18px;
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: 18px;
+  line-height: 1.5;
+}
+
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
