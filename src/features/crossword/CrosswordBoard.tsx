@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { useMemo, useRef, useState, type CompositionEvent, type KeyboardEvent } from 'react'
 import BigButton from '../../components/BigButton'
 import type { CrosswordPuzzle } from './api'
 import styles from './CrosswordBoard.module.css'
@@ -59,7 +59,7 @@ export default function CrosswordBoard({ puzzle, onExit }: CrosswordBoardProps) 
     if (target) focusCell(target.row, target.col)
   }
 
-  function handleChange(row: number, col: number, value: string) {
+  function handleChange(row: number, col: number, value: string, advance: boolean) {
     const char = value.slice(-1)
     setAnswers((prev) => {
       const next = prev.map((r) => [...r])
@@ -67,13 +67,17 @@ export default function CrosswordBoard({ puzzle, onExit }: CrosswordBoardProps) 
       return next
     })
     setChecked(false)
-    if (char) moveToAdjacent(row, col, 1)
+    if (char && advance) moveToAdjacent(row, col, 1)
   }
 
   function handleKeyDown(row: number, col: number, e: KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Backspace' && !answers[row][col]) {
       moveToAdjacent(row, col, -1)
     }
+  }
+
+  function handleCompositionEnd(row: number, col: number, e: CompositionEvent<HTMLInputElement>) {
+    handleChange(row, col, e.data, true)
   }
 
   function handleCheck() {
@@ -115,10 +119,13 @@ export default function CrosswordBoard({ puzzle, onExit }: CrosswordBoardProps) 
                     isWrong ? styles.cellWrong : '',
                   ].join(' ')}
                   value={value}
-                  maxLength={1}
                   inputMode="text"
                   aria-label={`${r}행 ${c}열`}
-                  onChange={(e) => handleChange(r, c, e.target.value)}
+                  onChange={(e) => {
+                    const composing = (e.nativeEvent as InputEvent).isComposing
+                    handleChange(r, c, e.target.value, !composing)
+                  }}
+                  onCompositionEnd={(e) => handleCompositionEnd(r, c, e)}
                   onKeyDown={(e) => handleKeyDown(r, c, e)}
                 />
               </div>
