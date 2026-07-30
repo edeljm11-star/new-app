@@ -61,6 +61,10 @@ export default function Home() {
           </Link>
         ))}
       </div>
+
+      <Link to="/admin" className={styles.adminLink}>
+        관리자
+      </Link>
     </div>
   )
 }

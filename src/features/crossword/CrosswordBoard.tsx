@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import BigButton from '../../components/BigButton'
-import type { CrosswordPuzzle } from './data'
+import type { CrosswordPuzzle } from './api'
 import styles from './CrosswordBoard.module.css'
 
 type HintMode = 'text' | 'emoji'

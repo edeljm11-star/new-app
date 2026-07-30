@@ -67,6 +67,15 @@
   line-height: 1.4;
 }
 
+.adminLink {
+  display: block;
+  text-align: center;
+  margin-top: 28px;
+  font-size: 13px;
+  color: var(--color-text-soft);
+  text-decoration: underline;
+}
+
 @media (max-width: 420px) {
   .grid {
     grid-template-columns: 1fr;

@@ -5,7 +5,7 @@ import BigButton from '../../components/BigButton'
 import ProgressDots from '../../components/ProgressDots'
 import ResultScreen from '../../components/ResultScreen'
 import { useTTS } from '../../hooks/useTTS'
-import type { Story } from './data'
+import type { Story } from './api'
 import styles from './StoryPlayer.module.css'
 
 type FlatQuestion =

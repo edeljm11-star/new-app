@@ -1,0 +1,277 @@
+.page {
+  min-height: 100vh;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 20px 60px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.backLink {
+  text-decoration: none;
+  font-size: 20px;
+  color: var(--color-text);
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 24px 14px;
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  box-shadow: var(--shadow-soft);
+  color: var(--color-text);
+}
+
+.cardEmoji {
+  font-size: 32px;
+}
+
+.cardTitle {
+  font-weight: 800;
+}
+
+.addButton {
+  display: inline-block;
+  margin-bottom: 16px;
+  padding: 12px 20px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: white;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-soft);
+}
+
+.rowTitle {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowActions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.smallButton {
+  padding: 8px 14px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.dangerButton {
+  composes: smallButton;
+  background: var(--color-wrong-bg);
+  color: var(--color-wrong);
+}
+
+.empty {
+  color: var(--color-text-soft);
+  padding: 40px 0;
+  text-align: center;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-soft);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-soft);
+}
+
+.field input[type='text'],
+.field input[type='number'],
+.field textarea,
+.field select {
+  font-family: inherit;
+  font-size: 15px;
+  padding: 10px 12px;
+  border: 1px solid #e6ded0;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.field textarea {
+  resize: vertical;
+  min-height: 72px;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--color-text-soft);
+}
+
+.subsection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed #e6ded0;
+}
+
+.subsectionTitle {
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.itemRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 10px;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+}
+
+.itemRow .field {
+  flex: 1 1 100px;
+  gap: 4px;
+}
+
+.itemRow .field input {
+  width: 100%;
+}
+
+.removeRowButton {
+  border: none;
+  background: var(--color-wrong-bg);
+  color: var(--color-wrong);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  cursor: pointer;
+  font-weight: 700;
+  height: 38px;
+}
+
+.addRowButton {
+  align-self: flex-start;
+  border: 1px dashed var(--color-primary);
+  background: transparent;
+  color: var(--color-primary-dark);
+  border-radius: var(--radius-sm);
+  padding: 8px 14px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.checkboxField {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.formActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.saveButton {
+  flex: 1;
+  padding: 14px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: white;
+  font-weight: 800;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.cancelButton {
+  padding: 14px 18px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text-soft);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.gridEditor {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gridRow {
+  display: flex;
+  gap: 4px;
+}
+
+.gridCell {
+  width: 36px;
+  height: 36px;
+  text-align: center;
+  padding: 0;
+  border: 1px solid #e6ded0;
+  border-radius: 6px;
+  font-family: inherit;
+}
+
+.sizeFields {
+  display: flex;
+  gap: 12px;
+}

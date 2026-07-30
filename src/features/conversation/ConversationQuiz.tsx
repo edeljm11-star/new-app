@@ -1,17 +1,38 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Layout from '../../components/Layout'
 import ChoiceButton from '../../components/ChoiceButton'
 import BigButton from '../../components/BigButton'
 import ProgressDots from '../../components/ProgressDots'
 import ResultScreen from '../../components/ResultScreen'
-import { conversations } from './data'
+import { listConversations, type ConversationItem } from './api'
 import styles from './ConversationQuiz.module.css'
 
 export default function ConversationQuiz() {
+  const [conversations, setConversations] = useState<ConversationItem[] | null>(null)
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
   const [score, setScore] = useState(0)
   const [finished, setFinished] = useState(false)
+
+  useEffect(() => {
+    listConversations().then(setConversations)
+  }, [])
+
+  if (conversations === null) {
+    return (
+      <Layout title="대화추론" accentColor="var(--color-primary)">
+        <p className={styles.situation}>불러오는 중이에요...</p>
+      </Layout>
+    )
+  }
+
+  if (conversations.length === 0) {
+    return (
+      <Layout title="대화추론" accentColor="var(--color-primary)">
+        <p className={styles.situation}>아직 대화가 없어요. 관리자 화면에서 추가해주세요.</p>
+      </Layout>
+    )
+  }
 
   const current = conversations[index]
   const isLast = index === conversations.length - 1
