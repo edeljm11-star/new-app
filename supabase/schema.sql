@@ -50,10 +50,44 @@ drop policy if exists "public read/write" on stories;
 drop policy if exists "public read/write" on conversations;
 drop policy if exists "public read/write" on crossword_puzzles;
 
-create policy "public read/write" on situations for all using (true) with check (true);
-create policy "public read/write" on stories for all using (true) with check (true);
-create policy "public read/write" on conversations for all using (true) with check (true);
-create policy "public read/write" on crossword_puzzles for all using (true) with check (true);
+-- Only the Supabase Auth user with this email (created via
+-- Authentication > Users) can add/edit/delete quiz content.
+-- Everyone can still read.
+drop policy if exists "public read" on situations;
+drop policy if exists "admin write" on situations;
+drop policy if exists "admin update" on situations;
+drop policy if exists "admin delete" on situations;
+create policy "public read" on situations for select using (true);
+create policy "admin write" on situations for insert with check (auth.jwt() ->> 'email' = 'edeljm11@gmail.com');
+create policy "admin update" on situations for update using (auth.jwt() ->> 'email' = 'edeljm11@gmail.com') with check (auth.jwt() ->> 'email' = 'edeljm11@gmail.com');
+create policy "admin delete" on situations for delete using (auth.jwt() ->> 'email' = 'edeljm11@gmail.com');
+
+drop policy if exists "public read" on stories;
+drop policy if exists "admin write" on stories;
+drop policy if exists "admin update" on stories;
+drop policy if exists "admin delete" on stories;
+create policy "public read" on stories for select using (true);
+create policy "admin write" on stories for insert with check (auth.jwt() ->> 'email' = 'edeljm11@gmail.com');
+create policy "admin update" on stories for update using (auth.jwt() ->> 'email' = 'edeljm11@gmail.com') with check (auth.jwt() ->> 'email' = 'edeljm11@gmail.com');
+create policy "admin delete" on stories for delete using (auth.jwt() ->> 'email' = 'edeljm11@gmail.com');
+
+drop policy if exists "public read" on conversations;
+drop policy if exists "admin write" on conversations;
+drop policy if exists "admin update" on conversations;
+drop policy if exists "admin delete" on conversations;
+create policy "public read" on conversations for select using (true);
+create policy "admin write" on conversations for insert with check (auth.jwt() ->> 'email' = 'edeljm11@gmail.com');
+create policy "admin update" on conversations for update using (auth.jwt() ->> 'email' = 'edeljm11@gmail.com') with check (auth.jwt() ->> 'email' = 'edeljm11@gmail.com');
+create policy "admin delete" on conversations for delete using (auth.jwt() ->> 'email' = 'edeljm11@gmail.com');
+
+drop policy if exists "public read" on crossword_puzzles;
+drop policy if exists "admin write" on crossword_puzzles;
+drop policy if exists "admin update" on crossword_puzzles;
+drop policy if exists "admin delete" on crossword_puzzles;
+create policy "public read" on crossword_puzzles for select using (true);
+create policy "admin write" on crossword_puzzles for insert with check (auth.jwt() ->> 'email' = 'edeljm11@gmail.com');
+create policy "admin update" on crossword_puzzles for update using (auth.jwt() ->> 'email' = 'edeljm11@gmail.com') with check (auth.jwt() ->> 'email' = 'edeljm11@gmail.com');
+create policy "admin delete" on crossword_puzzles for delete using (auth.jwt() ->> 'email' = 'edeljm11@gmail.com');
 
 -- situations
 insert into situations (id, scene, question, choices, answer_index, explanation, sort_order) values ('fell-down', '{"bg":"var(--color-pink-soft)","items":[{"emoji":"🤕","top":"45%","left":"35%","size":72},{"emoji":"🧍","top":"60%","left":"75%","size":60},{"emoji":"😟","top":"28%","left":"75%","size":34}]}'::jsonb, '친구가 넘어져서 아파해요. 어떻게 하면 좋을까요?', '["다가가서 괜찮은지 물어봐요","못 본 척 지나가요","친구를 보고 웃어요","더 세게 밀어요"]'::jsonb, 0, '다친 친구를 도와주면 친구가 고마워할 거예요.', 0)

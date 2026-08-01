@@ -160,6 +160,23 @@
   color: var(--color-text-soft);
 }
 
+.errorText {
+  color: var(--color-wrong);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.logoutButton {
+  border: none;
+  background: none;
+  color: var(--color-text-soft);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 6px 10px;
+  margin-left: auto;
+}
+
 .subsection {
   display: flex;
   flex-direction: column;
