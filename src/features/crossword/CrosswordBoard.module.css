@@ -1,6 +1,6 @@
 .board {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(var(--cols, 5), 1fr);
   gap: 4px;
   max-width: 340px;
   margin: 0 auto 20px;
@@ -111,6 +111,20 @@
   padding: 12px 14px;
   box-shadow: var(--shadow-soft);
   margin-bottom: 8px;
+}
+
+.clueSelect {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  border: none;
+  background: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
 }
 
 .clueNumber {

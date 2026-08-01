@@ -1,4 +1,11 @@
-import { useMemo, useRef, useState, type CompositionEvent, type KeyboardEvent } from 'react'
+import {
+  useMemo,
+  useRef,
+  useState,
+  type CompositionEvent,
+  type KeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
+} from 'react'
 import BigButton from '../../components/BigButton'
 import type { CrosswordPuzzle } from './api'
 import styles from './CrosswordBoard.module.css'
@@ -7,16 +14,6 @@ type HintMode = 'text' | 'emoji'
 
 function emptyGrid(rows: number, cols: number): string[][] {
   return Array.from({ length: rows }, () => Array.from({ length: cols }, () => ''))
-}
-
-function findCells(puzzle: CrosswordPuzzle) {
-  const cells: { row: number; col: number }[] = []
-  puzzle.grid.forEach((rowArr, row) => {
-    rowArr.forEach((cell, col) => {
-      if (cell !== null) cells.push({ row, col })
-    })
-  })
-  return cells
 }
 
 interface CrosswordBoardProps {
@@ -31,6 +28,7 @@ export default function CrosswordBoard({ puzzle, onExit }: CrosswordBoardProps) 
   const [answers, setAnswers] = useState<string[][]>(() => emptyGrid(rows, cols))
   const [checked, setChecked] = useState(false)
   const [hintModes, setHintModes] = useState<Record<string, HintMode>>({})
+  const [activeDirection, setActiveDirection] = useState<'across' | 'down'>('across')
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
   const numberMap = useMemo(() => {
@@ -41,7 +39,21 @@ export default function CrosswordBoard({ puzzle, onExit }: CrosswordBoardProps) 
     return map
   }, [puzzle, rows, cols])
 
-  const orderedCells = useMemo(() => findCells(puzzle), [puzzle])
+  // Cells at word intersections belong to both an across and a down word,
+  // so auto-advance needs to know which word is actually being typed.
+  const cellDirections = useMemo(() => {
+    const map: ('across' | 'down')[][][] = Array.from({ length: rows }, () =>
+      Array.from({ length: cols }, () => []),
+    )
+    for (const word of puzzle.words) {
+      for (let i = 0; i < word.length; i++) {
+        const r = word.direction === 'down' ? word.row + i : word.row
+        const c = word.direction === 'across' ? word.col + i : word.col
+        if (!map[r][c].includes(word.direction)) map[r][c].push(word.direction)
+      }
+    }
+    return map
+  }, [puzzle, rows, cols])
 
   const isComplete =
     checked &&
@@ -53,10 +65,33 @@ export default function CrosswordBoard({ puzzle, onExit }: CrosswordBoardProps) 
     inputRefs.current[`${row}-${col}`]?.focus()
   }
 
-  function moveToAdjacent(row: number, col: number, direction: 1 | -1) {
-    const idx = orderedCells.findIndex((c) => c.row === row && c.col === col)
-    const target = orderedCells[idx + direction]
-    if (target) focusCell(target.row, target.col)
+  function moveToAdjacent(row: number, col: number, delta: 1 | -1) {
+    const nextRow = activeDirection === 'down' ? row + delta : row
+    const nextCol = activeDirection === 'across' ? col + delta : col
+    if (nextRow < 0 || nextRow >= rows || nextCol < 0 || nextCol >= cols) return
+    if (puzzle.grid[nextRow][nextCol] === null) return
+    focusCell(nextRow, nextCol)
+  }
+
+  function handleFocus(row: number, col: number) {
+    const dirs = cellDirections[row][col]
+    setActiveDirection((prev) => (dirs.includes(prev) ? prev : (dirs[0] ?? prev)))
+  }
+
+  // Tapping a cell that already has focus doesn't fire a new focus event, so
+  // this is how a second tap on an across/down intersection (e.g. the shared
+  // start of "지우개" and "지도") switches direction instead of doing nothing.
+  function handlePointerDown(row: number, col: number, e: ReactMouseEvent<HTMLInputElement>) {
+    const alreadyFocused = document.activeElement === e.currentTarget
+    if (!alreadyFocused) return
+    const dirs = cellDirections[row][col]
+    if (dirs.length < 2) return
+    setActiveDirection((prev) => dirs.find((d) => d !== prev) ?? prev)
+  }
+
+  function selectWord(word: CrosswordPuzzle['words'][number]) {
+    setActiveDirection(word.direction)
+    focusCell(word.row, word.col)
   }
 
   function handleChange(row: number, col: number, value: string, advance: boolean) {
@@ -98,7 +133,7 @@ export default function CrosswordBoard({ puzzle, onExit }: CrosswordBoardProps) 
 
   return (
     <div>
-      <div className={styles.board}>
+      <div className={styles.board} style={{ '--cols': cols } as React.CSSProperties}>
         {puzzle.grid.map((rowArr, r) =>
           rowArr.map((cell, c) => {
             if (cell === null) return <div key={`${r}-${c}`} className={styles.blockCell} />
@@ -127,6 +162,8 @@ export default function CrosswordBoard({ puzzle, onExit }: CrosswordBoardProps) 
                   }}
                   onCompositionEnd={(e) => handleCompositionEnd(r, c, e)}
                   onKeyDown={(e) => handleKeyDown(r, c, e)}
+                  onFocus={() => handleFocus(r, c)}
+                  onMouseDown={(e) => handlePointerDown(r, c, e)}
                 />
               </div>
             )
@@ -146,8 +183,8 @@ export default function CrosswordBoard({ puzzle, onExit }: CrosswordBoardProps) 
       </div>
 
       <div className={styles.clues}>
-        <ClueGroup label="가로" words={across} hintModes={hintModes} onToggle={toggleHint} />
-        <ClueGroup label="세로" words={down} hintModes={hintModes} onToggle={toggleHint} />
+        <ClueGroup label="가로" words={across} hintModes={hintModes} onToggle={toggleHint} onSelect={selectWord} />
+        <ClueGroup label="세로" words={down} hintModes={hintModes} onToggle={toggleHint} onSelect={selectWord} />
       </div>
 
       <button type="button" className={styles.exitLink} onClick={onExit}>
@@ -162,11 +199,13 @@ function ClueGroup({
   words,
   hintModes,
   onToggle,
+  onSelect,
 }: {
   label: string
   words: CrosswordPuzzle['words']
   hintModes: Record<string, HintMode>
   onToggle: (key: string) => void
+  onSelect: (word: CrosswordPuzzle['words'][number]) => void
 }) {
   return (
     <div className={styles.clueGroup}>
@@ -176,8 +215,14 @@ function ClueGroup({
         const mode = hintModes[key] ?? 'text'
         return (
           <div key={key} className={styles.clueItem}>
-            <span className={styles.clueNumber}>{word.number}.</span>
-            <span className={styles.clueHint}>{mode === 'text' ? word.hintText : word.hintEmoji}</span>
+            <button
+              type="button"
+              className={styles.clueSelect}
+              onClick={() => onSelect(word)}
+            >
+              <span className={styles.clueNumber}>{word.number}.</span>
+              <span className={styles.clueHint}>{mode === 'text' ? word.hintText : word.hintEmoji}</span>
+            </button>
             <button
               type="button"
               className={styles.hintToggle}
