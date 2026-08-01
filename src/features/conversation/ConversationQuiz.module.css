@@ -5,6 +5,18 @@
   margin-bottom: 16px;
 }
 
+.prevButton {
+  display: block;
+  margin: 0 auto 14px;
+  background: none;
+  border: none;
+  color: var(--color-text-soft);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 6px;
+}
+
 .chat {
   background: var(--color-surface);
   border-radius: var(--radius-lg);

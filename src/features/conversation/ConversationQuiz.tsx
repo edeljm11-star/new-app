@@ -4,21 +4,23 @@ import ChoiceButton from '../../components/ChoiceButton'
 import BigButton from '../../components/BigButton'
 import ProgressDots from '../../components/ProgressDots'
 import ResultScreen from '../../components/ResultScreen'
+import { useQuizProgress } from '../../hooks/useQuizProgress'
 import { listConversations, type ConversationItem } from './api'
 import styles from './ConversationQuiz.module.css'
 
 export default function ConversationQuiz() {
   const [conversations, setConversations] = useState<ConversationItem[] | null>(null)
-  const [index, setIndex] = useState(0)
-  const [selected, setSelected] = useState<number | null>(null)
-  const [score, setScore] = useState(0)
-  const [finished, setFinished] = useState(false)
 
   useEffect(() => {
     listConversations().then(setConversations)
   }, [])
 
-  if (conversations === null) {
+  const { index, answers, finished, hydrated, selectAnswer, goNext, goPrev, retry } = useQuizProgress(
+    'conversationQuizProgress',
+    conversations?.length ?? null,
+  )
+
+  if (conversations === null || !hydrated) {
     return (
       <Layout title="대화추론" accentColor="var(--color-primary)">
         <p className={styles.situation}>불러오는 중이에요...</p>
@@ -36,36 +38,21 @@ export default function ConversationQuiz() {
 
   const current = conversations[index]
   const isLast = index === conversations.length - 1
-
-  function handleSelect(choiceIndex: number) {
-    if (selected !== null) return
-    setSelected(choiceIndex)
-    if (choiceIndex === current.answerIndex) setScore((s) => s + 1)
-  }
-
-  function handleNext() {
-    if (isLast) {
-      setFinished(true)
-      return
-    }
-    setIndex((i) => i + 1)
-    setSelected(null)
-  }
-
-  function handleRetry() {
-    setIndex(0)
-    setSelected(null)
-    setScore(0)
-    setFinished(false)
-  }
+  const selected = answers[index]
+  const score = answers.reduce<number>((sum, a, i) => sum + (a === conversations[i].answerIndex ? 1 : 0), 0)
 
   return (
     <Layout title="대화추론" accentColor="var(--color-primary)">
       {finished ? (
-        <ResultScreen score={score} total={conversations.length} onRetry={handleRetry} />
+        <ResultScreen score={score} total={conversations.length} onRetry={retry} />
       ) : (
         <>
           <ProgressDots total={conversations.length} current={index} />
+          {index > 0 && (
+            <button type="button" className={styles.prevButton} onClick={goPrev}>
+              ← 이전 대화
+            </button>
+          )}
           <p className={styles.situation}>{current.situation}</p>
 
           <div className={styles.chat}>
@@ -114,7 +101,7 @@ export default function ConversationQuiz() {
                   state={state}
                   disabled={selected !== null}
                   large={choice.isEmoji}
-                  onClick={() => handleSelect(i)}
+                  onClick={() => selectAnswer(i)}
                 >
                   {choice.label}
                 </ChoiceButton>
@@ -124,7 +111,7 @@ export default function ConversationQuiz() {
 
           {selected !== null && (
             <div className={styles.actions}>
-              <BigButton onClick={handleNext}>{isLast ? '결과 보기' : '다음 대화'}</BigButton>
+              <BigButton onClick={() => goNext(isLast)}>{isLast ? '결과 보기' : '다음 대화'}</BigButton>
             </div>
           )}
         </>
