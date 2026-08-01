@@ -1,30 +1,43 @@
 import { useEffect, useState } from 'react'
 import Layout from '../../components/Layout'
-import EmojiScene from '../../components/EmojiScene'
-import ChoiceButton from '../../components/ChoiceButton'
-import BigButton from '../../components/BigButton'
-import ProgressDots from '../../components/ProgressDots'
-import ResultScreen from '../../components/ResultScreen'
-import { useQuizProgress } from '../../hooks/useQuizProgress'
+import { usePersistedAnswers } from '../../hooks/usePersistedAnswers'
 import { listSituations, type SituationItem } from './api'
+import SituationBoard from './SituationBoard'
 import styles from './SituationQuiz.module.css'
+
+// Situations don't have a short title of their own (only a full question
+// sentence), so known ids get a hand-picked label here. Anything created
+// later via the admin screen falls back to its question text below.
+const TITLES: Record<string, string> = {
+  'fell-down': '넘어진 친구 돕기',
+  birthday: '생일 파티 알아채기',
+  'no-umbrella': '우산 없이 비를 맞을 때',
+  'toy-fight': '장난감 다툼 해결하기',
+  'perfect-score': '시험 잘 봤을 때 기분',
+  'group-project': '모둠 과제 갈등',
+  gossip: '친구 뒷담화 대처하기',
+  'team-sports': '진 팀 친구 위로하기',
+  'borrow-item': '빌린 준비물 책임지기',
+  bystander: '따돌림 목격했을 때',
+}
+
+function titleOf(item: SituationItem): string {
+  return TITLES[item.id] ?? item.question
+}
 
 export default function SituationQuiz() {
   const [situations, setSituations] = useState<SituationItem[] | null>(null)
+  const [openId, setOpenId] = useState<string | null>(null)
+  const { answers, recordAnswer } = usePersistedAnswers('situationAnswers')
 
   useEffect(() => {
     listSituations().then(setSituations)
   }, [])
 
-  const { index, answers, finished, hydrated, selectAnswer, goNext, goPrev, retry } = useQuizProgress(
-    'situationQuizProgress',
-    situations?.length ?? null,
-  )
-
-  if (situations === null || !hydrated) {
+  if (situations === null) {
     return (
       <Layout title="상황추론" accentColor="var(--color-pink)">
-        <p className={styles.question}>불러오는 중이에요...</p>
+        <p className={styles.intro}>불러오는 중이에요...</p>
       </Layout>
     )
   }
@@ -32,54 +45,42 @@ export default function SituationQuiz() {
   if (situations.length === 0) {
     return (
       <Layout title="상황추론" accentColor="var(--color-pink)">
-        <p className={styles.question}>아직 문제가 없어요. 관리자 화면에서 추가해주세요.</p>
+        <p className={styles.intro}>아직 문제가 없어요. 관리자 화면에서 추가해주세요.</p>
       </Layout>
     )
   }
 
-  const current = situations[index]
-  const isLast = index === situations.length - 1
-  const selected = answers[index]
-  const score = answers.reduce<number>((sum, a, i) => sum + (a === situations[i].answerIndex ? 1 : 0), 0)
+  const open = situations.find((s) => s.id === openId) ?? null
+
+  if (open) {
+    return (
+      <SituationBoard
+        situation={open}
+        answer={answers[open.id]}
+        onAnswer={(choiceIndex) => recordAnswer(open.id, choiceIndex)}
+        onExit={() => setOpenId(null)}
+      />
+    )
+  }
 
   return (
     <Layout title="상황추론" accentColor="var(--color-pink)">
-      {finished ? (
-        <ResultScreen score={score} total={situations.length} onRetry={retry} />
-      ) : (
-        <>
-          <ProgressDots total={situations.length} current={index} />
-          {index > 0 && (
-            <button type="button" className={styles.prevButton} onClick={goPrev}>
-              ← 이전 문제
+      <p className={styles.intro}>풀고 싶은 문제를 골라보세요</p>
+      <div className={styles.list}>
+        {situations.map((item) => {
+          const answer = answers[item.id]
+          const isCorrect = answer !== undefined && answer === item.answerIndex
+          const isWrong = answer !== undefined && answer !== item.answerIndex
+          return (
+            <button key={item.id} type="button" className={styles.itemCard} onClick={() => setOpenId(item.id)}>
+              <span className={styles.itemEmoji}>{item.scene.items[0]?.emoji ?? '🤔'}</span>
+              <span className={styles.itemTitle}>{titleOf(item)}</span>
+              {isCorrect && <span className={[styles.itemStatus, styles.statusCorrect].join(' ')}>✓</span>}
+              {isWrong && <span className={[styles.itemStatus, styles.statusWrong].join(' ')}>✗</span>}
             </button>
-          )}
-          <EmojiScene scene={current.scene} />
-          <p className={styles.question}>{current.question}</p>
-          <div className={styles.choices}>
-            {current.choices.map((choice, i) => {
-              let state: 'idle' | 'correct' | 'wrong' | 'dimmed' = 'idle'
-              if (selected !== null) {
-                if (i === current.answerIndex) state = 'correct'
-                else if (i === selected) state = 'wrong'
-                else state = 'dimmed'
-              }
-              return (
-                <ChoiceButton key={i} state={state} onClick={() => selectAnswer(i)} disabled={selected !== null}>
-                  {choice}
-                </ChoiceButton>
-              )
-            })}
-          </div>
-
-          {selected !== null && (
-            <div className={styles.feedback}>
-              <p className={styles.explanation}>{current.explanation}</p>
-              <BigButton onClick={() => goNext(isLast)}>{isLast ? '결과 보기' : '다음 문제'}</BigButton>
-            </div>
-          )}
-        </>
-      )}
+          )
+        })}
+      </div>
     </Layout>
   )
 }

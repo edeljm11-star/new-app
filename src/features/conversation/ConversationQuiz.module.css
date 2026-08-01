@@ -1,102 +1,65 @@
-.situation {
+.intro {
   text-align: center;
-  font-size: 14px;
+  font-size: 16px;
   color: var(--color-text-soft);
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 
-.prevButton {
-  display: block;
-  margin: 0 auto 14px;
-  background: none;
-  border: none;
-  color: var(--color-text-soft);
-  font-weight: 700;
-  font-size: 14px;
-  cursor: pointer;
-  padding: 6px;
-}
-
-.chat {
-  background: var(--color-surface);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-soft);
-  padding: 20px 16px;
+.list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-bottom: 20px;
+  gap: 14px;
 }
 
-.bubbleRow {
+.itemCard {
   display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 20px;
+  border: none;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.12s ease;
 }
 
-.left {
-  justify-content: flex-start;
+.itemCard:active {
+  transform: scale(0.98);
 }
 
-.right {
-  justify-content: flex-end;
+.itemEmoji {
+  font-size: 32px;
+  flex-shrink: 0;
 }
 
-.bubble {
-  max-width: 78%;
-  padding: 12px 16px;
-  border-radius: 18px;
-  font-size: 15px;
-  line-height: 1.5;
-  background: #f1efe9;
+.itemTitle {
+  flex: 1;
+  font-size: 17px;
+  font-weight: 800;
   color: var(--color-text);
 }
 
-.left .bubble {
-  border-bottom-left-radius: 4px;
-}
-
-.right .bubble {
-  background: var(--color-primary-soft);
-  border-bottom-right-radius: 4px;
-}
-
-.blankBubble {
+.itemStatus {
+  font-size: 15px;
   font-weight: 800;
-  border: 2px dashed #cfc6b0;
-  background: white;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.correctBubble {
-  border: 2px solid var(--color-correct);
+.statusCorrect {
   background: var(--color-correct-bg);
   color: var(--color-correct);
 }
 
-.wrongBubble {
-  border: 2px solid var(--color-wrong);
+.statusWrong {
   background: var(--color-wrong-bg);
   color: var(--color-wrong);
-}
-
-.prompt {
-  text-align: center;
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--color-text-soft);
-  margin-bottom: 14px;
-}
-
-.choices {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.choicesEmoji {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.actions {
-  margin-top: 24px;
 }

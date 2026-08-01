@@ -1,0 +1,38 @@
+.question {
+  font-size: 19px;
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: 18px;
+  line-height: 1.5;
+}
+
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.feedback {
+  margin-top: 24px;
+}
+
+.explanation {
+  text-align: center;
+  font-size: 15px;
+  color: var(--color-text-soft);
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+}
+
+.exitLink {
+  display: block;
+  margin: 28px auto 0;
+  background: none;
+  border: none;
+  color: var(--color-text-soft);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 8px;
+}
