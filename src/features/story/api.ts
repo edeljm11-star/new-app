@@ -20,6 +20,7 @@ export interface VocabQuizItem {
   word: string
   choices: string[]
   answerIndex: number
+  type?: 'vocab' | 'proverb'
 }
 
 export interface Story {

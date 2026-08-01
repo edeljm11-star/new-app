@@ -12,6 +12,7 @@ type FlatQuestion =
   | { kind: 'tf'; prompt: string; choices: string[]; answerIndex: number }
   | { kind: 'theme'; prompt: string; choices: string[]; answerIndex: number }
   | { kind: 'vocab'; prompt: string; choices: string[]; answerIndex: number }
+  | { kind: 'proverb'; prompt: string; choices: string[]; answerIndex: number }
 
 function buildQuestions(story: Story): FlatQuestion[] {
   const tf: FlatQuestion[] = story.trueFalse.map((item) => ({
@@ -26,12 +27,21 @@ function buildQuestions(story: Story): FlatQuestion[] {
     choices: story.mainTheme.choices,
     answerIndex: story.mainTheme.answerIndex,
   }
-  const vocab: FlatQuestion[] = story.vocabQuiz.map((item) => ({
-    kind: 'vocab',
-    prompt: `'${item.word}'의 뜻으로 알맞은 것은 무엇일까요?`,
-    choices: item.choices,
-    answerIndex: item.answerIndex,
-  }))
+  const vocab: FlatQuestion[] = story.vocabQuiz.map((item) =>
+    item.type === 'proverb'
+      ? {
+          kind: 'proverb',
+          prompt: `'${item.word}'는 무슨 뜻일까요?`,
+          choices: item.choices,
+          answerIndex: item.answerIndex,
+        }
+      : {
+          kind: 'vocab',
+          prompt: `'${item.word}'의 뜻으로 알맞은 것은 무엇일까요?`,
+          choices: item.choices,
+          answerIndex: item.answerIndex,
+        },
+  )
   return [...tf, theme, ...vocab]
 }
 
@@ -39,6 +49,7 @@ const kindLabel: Record<FlatQuestion['kind'], string> = {
   tf: '내용 일치',
   theme: '핵심 주제',
   vocab: '어휘 퀴즈',
+  proverb: '속담 퀴즈',
 }
 
 interface StoryPlayerProps {
