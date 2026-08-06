@@ -62,7 +62,15 @@ export default function CrosswordBoard({ puzzle, onExit }: CrosswordBoardProps) 
     )
 
   function focusCell(row: number, col: number) {
-    inputRefs.current[`${row}-${col}`]?.focus()
+    // Deferred a tick so the browser fully finishes handling whatever event
+    // (compositionend, keydown) triggered the move before we shift focus.
+    // Moving focus synchronously mid-event can make Android IMEs (notably
+    // Samsung Keyboard) start the next cell's composition before finishing
+    // teardown of the previous one, dropping the next cell's first
+    // keystroke. Real typing speed leaves ample room for this to settle.
+    setTimeout(() => {
+      inputRefs.current[`${row}-${col}`]?.focus()
+    }, 0)
   }
 
   function moveToAdjacent(row: number, col: number, delta: 1 | -1) {
