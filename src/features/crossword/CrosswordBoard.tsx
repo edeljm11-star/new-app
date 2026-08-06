@@ -94,7 +94,7 @@ export default function CrosswordBoard({ puzzle, onExit }: CrosswordBoardProps) 
     focusCell(word.row, word.col)
   }
 
-  function handleChange(row: number, col: number, value: string) {
+  function handleChange(row: number, col: number, value: string, advance: boolean) {
     const char = value.slice(-1)
     setAnswers((prev) => {
       const next = prev.map((r) => [...r])
@@ -102,7 +102,7 @@ export default function CrosswordBoard({ puzzle, onExit }: CrosswordBoardProps) 
       return next
     })
     setChecked(false)
-    if (char) moveToAdjacent(row, col, 1)
+    if (char && advance) moveToAdjacent(row, col, 1)
   }
 
   function handleKeyDown(row: number, col: number, e: KeyboardEvent<HTMLInputElement>) {
@@ -112,7 +112,10 @@ export default function CrosswordBoard({ puzzle, onExit }: CrosswordBoardProps) 
   }
 
   function handleCompositionEnd(row: number, col: number, e: CompositionEvent<HTMLInputElement>) {
-    handleChange(row, col, e.data)
+    // Read the live DOM value rather than e.data: some mobile browsers
+    // (Samsung Internet) deliver an unreliable/empty CompositionEvent.data,
+    // which would silently erase whatever the user just typed.
+    handleChange(row, col, (e.target as HTMLInputElement).value, true)
   }
 
   function handleCheck() {
@@ -161,13 +164,13 @@ export default function CrosswordBoard({ puzzle, onExit }: CrosswordBoardProps) 
                   spellCheck={false}
                   aria-label={`${r}행 ${c}열`}
                   onChange={(e) => {
-                    // Updating state while an IME composition is in progress
-                    // resets the controlled value mid-keystroke, which breaks
-                    // Hangul composition on mobile keyboards (the first
-                    // syllable gets dropped). Only commit once composition
-                    // finishes, via onCompositionEnd.
-                    if ((e.nativeEvent as InputEvent).isComposing) return
-                    handleChange(r, c, e.target.value)
+                    // Some mobile IMEs (Samsung Keyboard on Samsung Internet)
+                    // never deliver a usable compositionend, so onChange is
+                    // the only reliable path there — keep committing on every
+                    // change, but only auto-advance once composition (if any)
+                    // has finished.
+                    const composing = (e.nativeEvent as InputEvent).isComposing
+                    handleChange(r, c, e.target.value, !composing)
                   }}
                   onCompositionEnd={(e) => handleCompositionEnd(r, c, e)}
                   onKeyDown={(e) => handleKeyDown(r, c, e)}
