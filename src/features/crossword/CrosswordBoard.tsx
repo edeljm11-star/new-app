@@ -35,6 +35,12 @@ export default function CrosswordBoard({ puzzle, onExit }: CrosswordBoardProps) 
   const [hintModes, setHintModes] = useState<Record<string, HintMode>>({})
   const [activeDirection, setActiveDirection] = useState<'across' | 'down'>('across')
   const [activeCell, setActiveCell] = useState<Cell | null>(null)
+  // The syllable currently being assembled by the IME, shown live in the
+  // active cell. Kept separate from `answers` so displaying it never means
+  // writing to the hidden input's own value mid-composition — that's what
+  // corrupted Hangul composition when cells were individually controlled
+  // inputs.
+  const [preview, setPreview] = useState('')
   // A single persistent input captures every keystroke for the whole board.
   // Cells themselves are plain divs — tapping one just moves this pointer.
   // Because the input never loses focus while solving a word, typing never
@@ -78,6 +84,7 @@ export default function CrosswordBoard({ puzzle, onExit }: CrosswordBoardProps) 
     if (!hiddenInputRef.current) return
     hiddenInputRef.current.value = ''
     hiddenInputRef.current.focus()
+    setPreview('')
   }
 
   // Tapping a cell that's already active switches direction when it sits on
@@ -127,12 +134,18 @@ export default function CrosswordBoard({ puzzle, onExit }: CrosswordBoardProps) 
   }
 
   function handleHiddenChange(e: ChangeEvent<HTMLInputElement>) {
-    // Reacting mid-composition would force this input to re-render while
-    // Android is still assembling a Hangul syllable, corrupting it — only
-    // commit once composition (if any) finishes.
-    if (e.nativeEvent instanceof InputEvent && e.nativeEvent.isComposing) return
+    // Committing (writing to `answers`) mid-composition would force this
+    // input to re-render while Android is still assembling a Hangul
+    // syllable, corrupting it — only commit once composition finishes.
+    // Showing a live preview is safe, though: it never touches the hidden
+    // input's own value, just a separate bit of state rendered elsewhere.
+    if (e.nativeEvent instanceof InputEvent && e.nativeEvent.isComposing) {
+      setPreview(e.target.value)
+      return
+    }
     const char = e.target.value.slice(-1)
     e.target.value = ''
+    setPreview('')
     if (char) commitChar(char)
   }
 
@@ -143,11 +156,13 @@ export default function CrosswordBoard({ puzzle, onExit }: CrosswordBoardProps) 
     const target = e.target as HTMLInputElement
     const char = target.value.slice(-1)
     target.value = ''
+    setPreview('')
     if (char) commitChar(char)
   }
 
   function handleHiddenKeyDown(e: KeyboardEvent<HTMLInputElement>) {
     if (e.key !== 'Backspace' || e.nativeEvent.isComposing || !activeCell) return
+    setPreview('')
     const { row, col } = activeCell
     if (answers[row][col]) {
       setAnswers((prev) => {
@@ -200,6 +215,7 @@ export default function CrosswordBoard({ puzzle, onExit }: CrosswordBoardProps) 
             const isCorrect = checked && value === cell
             const isWrong = checked && value !== '' && value !== cell
             const isActive = activeCell?.row === r && activeCell?.col === c
+            const displayValue = isActive && preview ? preview.slice(-1) : value
             const number = numberMap[r][c]
             return (
               <div key={`${r}-${c}`} className={styles.cellWrap}>
@@ -216,7 +232,7 @@ export default function CrosswordBoard({ puzzle, onExit }: CrosswordBoardProps) 
                   aria-label={`${r}행 ${c}열`}
                   onClick={() => selectCell(r, c)}
                 >
-                  {value}
+                  {displayValue}
                 </div>
               </div>
             )
