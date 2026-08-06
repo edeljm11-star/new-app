@@ -1,16 +1,21 @@
 import {
-  useMemo,
   useRef,
+  useMemo,
   useState,
+  type ChangeEvent,
   type CompositionEvent,
   type KeyboardEvent,
-  type MouseEvent as ReactMouseEvent,
 } from 'react'
 import BigButton from '../../components/BigButton'
 import type { CrosswordPuzzle } from './api'
 import styles from './CrosswordBoard.module.css'
 
 type HintMode = 'text' | 'emoji'
+
+interface Cell {
+  row: number
+  col: number
+}
 
 function emptyGrid(rows: number, cols: number): string[][] {
   return Array.from({ length: rows }, () => Array.from({ length: cols }, () => ''))
@@ -29,7 +34,15 @@ export default function CrosswordBoard({ puzzle, onExit }: CrosswordBoardProps) 
   const [checked, setChecked] = useState(false)
   const [hintModes, setHintModes] = useState<Record<string, HintMode>>({})
   const [activeDirection, setActiveDirection] = useState<'across' | 'down'>('across')
-  const inputRefs = useRef<Record<string, HTMLInputElement | null>>({})
+  const [activeCell, setActiveCell] = useState<Cell | null>(null)
+  // A single persistent input captures every keystroke for the whole board.
+  // Cells themselves are plain divs — tapping one just moves this pointer.
+  // Because the input never loses focus while solving a word, typing never
+  // triggers a focus transition mid-keystroke, which is what was corrupting
+  // Hangul composition on Android (Samsung Keyboard confirmed): the OS was
+  // starting a new cell's composition before finishing teardown of the
+  // previous cell's, dropping keystrokes.
+  const hiddenInputRef = useRef<HTMLInputElement | null>(null)
 
   const numberMap = useMemo(() => {
     const map: (number | null)[][] = Array.from({ length: rows }, () => Array(cols).fill(null))
@@ -61,69 +74,91 @@ export default function CrosswordBoard({ puzzle, onExit }: CrosswordBoardProps) 
       rowArr.every((cell, c) => cell === null || answers[r][c] === cell),
     )
 
-  function focusCell(row: number, col: number) {
-    // Deferred a tick so the browser fully finishes handling whatever event
-    // (compositionend, keydown) triggered the move before we shift focus.
-    // Moving focus synchronously mid-event can make Android IMEs (notably
-    // Samsung Keyboard) start the next cell's composition before finishing
-    // teardown of the previous one, dropping the next cell's first
-    // keystroke. Real typing speed leaves ample room for this to settle.
-    setTimeout(() => {
-      inputRefs.current[`${row}-${col}`]?.focus()
-    }, 0)
+  function focusHiddenInput() {
+    if (!hiddenInputRef.current) return
+    hiddenInputRef.current.value = ''
+    hiddenInputRef.current.focus()
   }
 
-  function moveToAdjacent(row: number, col: number, delta: 1 | -1) {
-    const nextRow = activeDirection === 'down' ? row + delta : row
-    const nextCol = activeDirection === 'across' ? col + delta : col
-    if (nextRow < 0 || nextRow >= rows || nextCol < 0 || nextCol >= cols) return
-    if (puzzle.grid[nextRow][nextCol] === null) return
-    focusCell(nextRow, nextCol)
-  }
-
-  function handleFocus(row: number, col: number) {
+  // Tapping a cell that's already active switches direction when it sits on
+  // an across/down intersection (e.g. the shared start of "지우개" and
+  // "지도"), otherwise picks whichever direction the tap doesn't already
+  // match — this mirrors what focus + a second tap used to do back when
+  // each cell was its own input.
+  function selectCell(row: number, col: number) {
     const dirs = cellDirections[row][col]
-    setActiveDirection((prev) => (dirs.includes(prev) ? prev : (dirs[0] ?? prev)))
-  }
-
-  // Tapping a cell that already has focus doesn't fire a new focus event, so
-  // this is how a second tap on an across/down intersection (e.g. the shared
-  // start of "지우개" and "지도") switches direction instead of doing nothing.
-  function handlePointerDown(row: number, col: number, e: ReactMouseEvent<HTMLInputElement>) {
-    const alreadyFocused = document.activeElement === e.currentTarget
-    if (!alreadyFocused) return
-    const dirs = cellDirections[row][col]
-    if (dirs.length < 2) return
-    setActiveDirection((prev) => dirs.find((d) => d !== prev) ?? prev)
+    const isSameCell = activeCell?.row === row && activeCell?.col === col
+    if (isSameCell && dirs.length >= 2) {
+      setActiveDirection((prev) => dirs.find((d) => d !== prev) ?? prev)
+    } else {
+      setActiveDirection((prev) => (dirs.includes(prev) ? prev : (dirs[0] ?? prev)))
+    }
+    setActiveCell({ row, col })
+    focusHiddenInput()
   }
 
   function selectWord(word: CrosswordPuzzle['words'][number]) {
     setActiveDirection(word.direction)
-    focusCell(word.row, word.col)
+    setActiveCell({ row: word.row, col: word.col })
+    focusHiddenInput()
   }
 
-  function handleChange(row: number, col: number, value: string) {
-    const char = value.slice(-1)
+  function moveActiveCell(delta: 1 | -1) {
+    setActiveCell((current) => {
+      if (!current) return current
+      const nextRow = activeDirection === 'down' ? current.row + delta : current.row
+      const nextCol = activeDirection === 'across' ? current.col + delta : current.col
+      if (nextRow < 0 || nextRow >= rows || nextCol < 0 || nextCol >= cols) return current
+      if (puzzle.grid[nextRow][nextCol] === null) return current
+      return { row: nextRow, col: nextCol }
+    })
+  }
+
+  function commitChar(char: string) {
+    if (!activeCell) return
+    const { row, col } = activeCell
     setAnswers((prev) => {
       const next = prev.map((r) => [...r])
       next[row][col] = char
       return next
     })
     setChecked(false)
-    if (char) moveToAdjacent(row, col, 1)
+    if (char) moveActiveCell(1)
   }
 
-  function handleKeyDown(row: number, col: number, e: KeyboardEvent<HTMLInputElement>) {
-    if (e.key === 'Backspace' && !answers[row][col]) {
-      moveToAdjacent(row, col, -1)
-    }
+  function handleHiddenChange(e: ChangeEvent<HTMLInputElement>) {
+    // Reacting mid-composition would force this input to re-render while
+    // Android is still assembling a Hangul syllable, corrupting it — only
+    // commit once composition (if any) finishes.
+    if (e.nativeEvent instanceof InputEvent && e.nativeEvent.isComposing) return
+    const char = e.target.value.slice(-1)
+    e.target.value = ''
+    if (char) commitChar(char)
   }
 
-  function handleCompositionEnd(row: number, col: number, e: CompositionEvent<HTMLInputElement>) {
+  function handleHiddenCompositionEnd(e: CompositionEvent<HTMLInputElement>) {
     // Read the live DOM value rather than e.data: some mobile browsers
     // (Samsung Internet) deliver an unreliable/empty CompositionEvent.data,
     // which would silently erase whatever the user just typed.
-    handleChange(row, col, (e.target as HTMLInputElement).value)
+    const target = e.target as HTMLInputElement
+    const char = target.value.slice(-1)
+    target.value = ''
+    if (char) commitChar(char)
+  }
+
+  function handleHiddenKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key !== 'Backspace' || e.nativeEvent.isComposing || !activeCell) return
+    const { row, col } = activeCell
+    if (answers[row][col]) {
+      setAnswers((prev) => {
+        const next = prev.map((r) => [...r])
+        next[row][col] = ''
+        return next
+      })
+      setChecked(false)
+    } else {
+      moveActiveCell(-1)
+    }
   }
 
   function handleCheck() {
@@ -144,6 +179,19 @@ export default function CrosswordBoard({ puzzle, onExit }: CrosswordBoardProps) 
 
   return (
     <div>
+      <input
+        ref={hiddenInputRef}
+        className={styles.hiddenInput}
+        inputMode="text"
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck={false}
+        aria-label="정답 입력"
+        onChange={handleHiddenChange}
+        onCompositionEnd={handleHiddenCompositionEnd}
+        onKeyDown={handleHiddenKeyDown}
+      />
       <div className={styles.board} style={{ '--cols': cols } as React.CSSProperties}>
         {puzzle.grid.map((rowArr, r) =>
           rowArr.map((cell, c) => {
@@ -151,42 +199,25 @@ export default function CrosswordBoard({ puzzle, onExit }: CrosswordBoardProps) 
             const value = answers[r][c]
             const isCorrect = checked && value === cell
             const isWrong = checked && value !== '' && value !== cell
+            const isActive = activeCell?.row === r && activeCell?.col === c
             const number = numberMap[r][c]
             return (
               <div key={`${r}-${c}`} className={styles.cellWrap}>
                 {number !== null && <span className={styles.cellNumber}>{number}</span>}
-                <input
-                  ref={(el) => {
-                    inputRefs.current[`${r}-${c}`] = el
-                  }}
+                <div
+                  role="button"
+                  tabIndex={-1}
                   className={[
                     styles.cellInput,
+                    isActive ? styles.cellActive : '',
                     isCorrect ? styles.cellCorrect : '',
                     isWrong ? styles.cellWrong : '',
                   ].join(' ')}
-                  value={value}
-                  inputMode="text"
-                  autoComplete="off"
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                  spellCheck={false}
                   aria-label={`${r}행 ${c}열`}
-                  onChange={(e) => {
-                    // Updating state while an IME composition is in progress
-                    // forces this controlled input to re-render mid-keystroke,
-                    // which corrupts Hangul composition on Android (Samsung
-                    // Keyboard confirmed) — only the last-typed jamo survives.
-                    // Committing exclusively on compositionEnd — reading the
-                    // live DOM value rather than the event's own (unreliable
-                    // on Samsung Internet) data — avoids that entirely.
-                    if ((e.nativeEvent as InputEvent).isComposing) return
-                    handleChange(r, c, e.target.value)
-                  }}
-                  onCompositionEnd={(e) => handleCompositionEnd(r, c, e)}
-                  onKeyDown={(e) => handleKeyDown(r, c, e)}
-                  onFocus={() => handleFocus(r, c)}
-                  onMouseDown={(e) => handlePointerDown(r, c, e)}
-                />
+                  onClick={() => selectCell(r, c)}
+                >
+                  {value}
+                </div>
               </div>
             )
           }),
