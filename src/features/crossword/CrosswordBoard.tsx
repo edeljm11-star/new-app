@@ -94,7 +94,7 @@ export default function CrosswordBoard({ puzzle, onExit }: CrosswordBoardProps) 
     focusCell(word.row, word.col)
   }
 
-  function handleChange(row: number, col: number, value: string, advance: boolean) {
+  function handleChange(row: number, col: number, value: string) {
     const char = value.slice(-1)
     setAnswers((prev) => {
       const next = prev.map((r) => [...r])
@@ -102,7 +102,7 @@ export default function CrosswordBoard({ puzzle, onExit }: CrosswordBoardProps) 
       return next
     })
     setChecked(false)
-    if (char && advance) moveToAdjacent(row, col, 1)
+    if (char) moveToAdjacent(row, col, 1)
   }
 
   function handleKeyDown(row: number, col: number, e: KeyboardEvent<HTMLInputElement>) {
@@ -112,7 +112,7 @@ export default function CrosswordBoard({ puzzle, onExit }: CrosswordBoardProps) 
   }
 
   function handleCompositionEnd(row: number, col: number, e: CompositionEvent<HTMLInputElement>) {
-    handleChange(row, col, e.data, true)
+    handleChange(row, col, e.data)
   }
 
   function handleCheck() {
@@ -155,10 +155,19 @@ export default function CrosswordBoard({ puzzle, onExit }: CrosswordBoardProps) 
                   ].join(' ')}
                   value={value}
                   inputMode="text"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
                   aria-label={`${r}행 ${c}열`}
                   onChange={(e) => {
-                    const composing = (e.nativeEvent as InputEvent).isComposing
-                    handleChange(r, c, e.target.value, !composing)
+                    // Updating state while an IME composition is in progress
+                    // resets the controlled value mid-keystroke, which breaks
+                    // Hangul composition on mobile keyboards (the first
+                    // syllable gets dropped). Only commit once composition
+                    // finishes, via onCompositionEnd.
+                    if ((e.nativeEvent as InputEvent).isComposing) return
+                    handleChange(r, c, e.target.value)
                   }}
                   onCompositionEnd={(e) => handleCompositionEnd(r, c, e)}
                   onKeyDown={(e) => handleKeyDown(r, c, e)}
