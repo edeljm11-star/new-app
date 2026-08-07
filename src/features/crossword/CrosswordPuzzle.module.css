@@ -1,7 +1,7 @@
 .list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 8px;
 }
 
 .intro {
@@ -14,9 +14,9 @@
 .puzzleCard {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   width: 100%;
-  padding: 20px;
+  padding: 10px 16px;
   border: none;
   border-radius: var(--radius-lg);
   background: var(--color-surface);
@@ -31,11 +31,11 @@
 }
 
 .puzzleEmoji {
-  font-size: 36px;
+  font-size: 24px;
 }
 
 .puzzleTitle {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 800;
   color: var(--color-text);
   flex: 1;
@@ -44,20 +44,20 @@
 .categoryGroup {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
 }
 
 .puzzleCount {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--color-text-soft);
   background: var(--color-purple-soft);
   border-radius: 999px;
-  padding: 4px 10px;
+  padding: 3px 9px;
 }
 
 .chevron {
-  font-size: 16px;
+  font-size: 14px;
   color: var(--color-text-soft);
   transition: transform 0.15s ease;
 }
@@ -69,16 +69,16 @@
 .subList {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   padding-left: 20px;
 }
 
 .subItem {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
-  padding: 14px 16px;
+  padding: 8px 14px;
   border: none;
   border-radius: var(--radius-md);
   background: var(--color-surface);
@@ -96,18 +96,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   background: var(--color-purple);
   color: white;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
   flex-shrink: 0;
 }
 
 .subTitle {
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--color-text);
 }
