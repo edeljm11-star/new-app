@@ -19,6 +19,16 @@ const TITLES: Record<string, string> = {
   'team-sports': '진 팀 친구 위로하기',
   'borrow-item': '빌린 준비물 책임지기',
   bystander: '따돌림 목격했을 때',
+  'broken-item': '실수로 물건 망가뜨렸을 때',
+  'new-student': '전학생 맞이하기',
+  'lost-item': '소중한 물건을 잃어버렸을 때',
+  'unfair-blame': '억울하게 오해받았을 때',
+  'line-cutting': '새치기 대처하기',
+  'not-picked': '편 가르기에서 마지막까지 남았을 때',
+  'sibling-turn': '차례 기다리기',
+  'compliment-jealousy': '친구가 칭찬받을 때',
+  'promise-broken': '약속 어긴 친구 대하기',
+  'accidental-hurt': '무심코 한 말로 상처 줬을 때',
 }
 
 function titleOf(item: SituationItem): string {
