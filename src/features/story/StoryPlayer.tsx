@@ -13,6 +13,24 @@ type FlatQuestion =
   | { kind: 'theme'; prompt: string; choices: string[]; answerIndex: number }
   | { kind: 'vocab'; prompt: string; choices: string[]; answerIndex: number }
   | { kind: 'proverb'; prompt: string; choices: string[]; answerIndex: number }
+  | { kind: 'synonym'; prompt: string; choices: string[]; answerIndex: number }
+  | { kind: 'antonym'; prompt: string; choices: string[]; answerIndex: number }
+
+const VOCAB_QUIZ_KIND: Record<NonNullable<Story['vocabQuiz'][number]['type']>, FlatQuestion['kind']> = {
+  vocab: 'vocab',
+  proverb: 'proverb',
+  synonym: 'synonym',
+  antonym: 'antonym',
+}
+
+const VOCAB_QUIZ_PROMPT: Record<FlatQuestion['kind'], (word: string) => string> = {
+  tf: (word) => word,
+  theme: (word) => word,
+  vocab: (word) => `'${word}'의 뜻으로 알맞은 것은 무엇일까요?`,
+  proverb: (word) => `'${word}'는 무슨 뜻일까요?`,
+  synonym: (word) => `'${word}'와 비슷한 뜻을 가진 낱말은 무엇일까요?`,
+  antonym: (word) => `'${word}'와 반대되는 뜻을 가진 낱말은 무엇일까요?`,
+}
 
 function buildQuestions(story: Story): FlatQuestion[] {
   const tf: FlatQuestion[] = story.trueFalse.map((item) => ({
@@ -27,21 +45,15 @@ function buildQuestions(story: Story): FlatQuestion[] {
     choices: story.mainTheme.choices,
     answerIndex: story.mainTheme.answerIndex,
   }
-  const vocab: FlatQuestion[] = story.vocabQuiz.map((item) =>
-    item.type === 'proverb'
-      ? {
-          kind: 'proverb',
-          prompt: `'${item.word}'는 무슨 뜻일까요?`,
-          choices: item.choices,
-          answerIndex: item.answerIndex,
-        }
-      : {
-          kind: 'vocab',
-          prompt: `'${item.word}'의 뜻으로 알맞은 것은 무엇일까요?`,
-          choices: item.choices,
-          answerIndex: item.answerIndex,
-        },
-  )
+  const vocab: FlatQuestion[] = story.vocabQuiz.map((item) => {
+    const kind = VOCAB_QUIZ_KIND[item.type ?? 'vocab']
+    return {
+      kind,
+      prompt: VOCAB_QUIZ_PROMPT[kind](item.word),
+      choices: item.choices,
+      answerIndex: item.answerIndex,
+    }
+  })
   return [...tf, theme, ...vocab]
 }
 
@@ -50,6 +62,8 @@ const kindLabel: Record<FlatQuestion['kind'], string> = {
   theme: '핵심 주제',
   vocab: '어휘 퀴즈',
   proverb: '속담 퀴즈',
+  synonym: '비슷한말 퀴즈',
+  antonym: '반대말 퀴즈',
 }
 
 interface StoryPlayerProps {

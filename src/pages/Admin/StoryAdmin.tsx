@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { listStories, createStory, updateStory, deleteStory, type Story } from '../../features/story/api'
+import { listStories, createStory, updateStory, deleteStory, type Story, type VocabQuizItem } from '../../features/story/api'
 import styles from './admin.module.css'
 
 interface VocabDraft {
@@ -13,11 +13,21 @@ interface TrueFalseDraft {
   answer: boolean
 }
 
+type VocabQuizType = NonNullable<VocabQuizItem['type']>
+
 interface VocabQuizDraft {
+  type: VocabQuizType
   word: string
   choicesText: string
   answerLine: string
 }
+
+const VOCAB_QUIZ_TYPE_OPTIONS: { value: VocabQuizType; label: string }[] = [
+  { value: 'vocab', label: '단어 뜻' },
+  { value: 'proverb', label: '속담·사자성어' },
+  { value: 'synonym', label: '비슷한말' },
+  { value: 'antonym', label: '반대말' },
+]
 
 interface Draft {
   emoji: string
@@ -40,7 +50,7 @@ const emptyDraft: Draft = {
   themeQuestion: '',
   themeChoicesText: '',
   themeAnswerLine: '1',
-  vocabQuiz: [{ word: '', choicesText: '', answerLine: '1' }],
+  vocabQuiz: [{ type: 'vocab', word: '', choicesText: '', answerLine: '1' }],
 }
 
 function draftFromStory(s: Story): Draft {
@@ -54,6 +64,7 @@ function draftFromStory(s: Story): Draft {
     themeChoicesText: s.mainTheme.choices.join('\n'),
     themeAnswerLine: String(s.mainTheme.answerIndex + 1),
     vocabQuiz: s.vocabQuiz.map((v) => ({
+      type: v.type ?? 'vocab',
       word: v.word,
       choicesText: v.choices.join('\n'),
       answerLine: String(v.answerIndex + 1),
@@ -87,6 +98,7 @@ function draftToStory(draft: Draft): Omit<Story, 'id'> {
       .map((v) => {
         const choices = linesOf(v.choicesText)
         return {
+          type: v.type,
           word: v.word.trim(),
           choices,
           answerIndex: Math.min(Math.max(Number(v.answerLine) - 1, 0), choices.length - 1),
@@ -304,6 +316,26 @@ export default function StoryAdmin() {
             {draft.vocabQuiz.map((v, i) => (
               <div key={i} className={styles.itemRow}>
                 <div className={styles.field}>
+                  <label>문제 유형</label>
+                  <select
+                    value={v.type}
+                    onChange={(e) =>
+                      setDraft((d) => ({
+                        ...d,
+                        vocabQuiz: d.vocabQuiz.map((row, ri) =>
+                          ri === i ? { ...row, type: e.target.value as VocabQuizType } : row,
+                        ),
+                      }))
+                    }
+                  >
+                    {VOCAB_QUIZ_TYPE_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className={styles.field}>
                   <label>낱말</label>
                   <input
                     type="text"
@@ -355,7 +387,10 @@ export default function StoryAdmin() {
               type="button"
               className={styles.addRowButton}
               onClick={() =>
-                setDraft((d) => ({ ...d, vocabQuiz: [...d.vocabQuiz, { word: '', choicesText: '', answerLine: '1' }] }))
+                setDraft((d) => ({
+                  ...d,
+                  vocabQuiz: [...d.vocabQuiz, { type: 'vocab', word: '', choicesText: '', answerLine: '1' }],
+                }))
               }
             >
               + 어휘 문제 추가
