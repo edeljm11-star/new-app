@@ -7,10 +7,15 @@ import {
   type KeyboardEvent,
 } from 'react'
 import BigButton from '../../components/BigButton'
+import { toChosung } from '../../lib/hangul'
 import type { CrosswordPuzzle } from './api'
 import styles from './CrosswordBoard.module.css'
 
-type HintMode = 'text' | 'emoji'
+type HintMode = 'text' | 'chosung' | 'emoji'
+const NEXT_HINT_MODE: Record<HintMode, HintMode> = { text: 'chosung', chosung: 'emoji', emoji: 'text' }
+// Icon shown represents what tapping the button switches *to*, matching how
+// the two-mode toggle worked before (icon = the other mode's symbol).
+const HINT_MODE_ICON: Record<HintMode, string> = { text: '🔤', chosung: '🖼️', emoji: '💬' }
 
 interface Cell {
   row: number
@@ -186,7 +191,7 @@ export default function CrosswordBoard({ puzzle, onExit }: CrosswordBoardProps) 
   }
 
   function toggleHint(key: string) {
-    setHintModes((prev) => ({ ...prev, [key]: prev[key] === 'emoji' ? 'text' : 'emoji' }))
+    setHintModes((prev) => ({ ...prev, [key]: NEXT_HINT_MODE[prev[key] ?? 'text'] }))
   }
 
   const across = puzzle.words.filter((w) => w.direction === 'across')
@@ -290,7 +295,9 @@ function ClueGroup({
               onClick={() => onSelect(word)}
             >
               <span className={styles.clueNumber}>{word.number}.</span>
-              <span className={styles.clueHint}>{mode === 'text' ? word.hintText : word.hintEmoji}</span>
+              <span className={styles.clueHint}>
+                {mode === 'text' ? word.hintText : mode === 'chosung' ? toChosung(word.answer) : word.hintEmoji}
+              </span>
             </button>
             <button
               type="button"
@@ -298,7 +305,7 @@ function ClueGroup({
               onClick={() => onToggle(key)}
               aria-label="힌트 방식 바꾸기"
             >
-              {mode === 'text' ? '🖼️' : '💬'}
+              {HINT_MODE_ICON[mode]}
             </button>
           </div>
         )
