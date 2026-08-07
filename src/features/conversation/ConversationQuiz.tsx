@@ -56,7 +56,6 @@ export default function ConversationQuiz() {
     return (
       <ConversationBoard
         conversation={open}
-        answer={answers[open.id]}
         onAnswer={(choiceIndex) => recordAnswer(open.id, choiceIndex)}
         onExit={() => setOpenId(null)}
       />

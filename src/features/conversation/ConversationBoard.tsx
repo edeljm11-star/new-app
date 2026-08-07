@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import Layout from '../../components/Layout'
 import ChoiceButton from '../../components/ChoiceButton'
 import type { ConversationItem } from './api'
@@ -5,13 +6,20 @@ import styles from './ConversationBoard.module.css'
 
 interface ConversationBoardProps {
   conversation: ConversationItem
-  answer: number | undefined
   onAnswer: (choiceIndex: number) => void
   onExit: () => void
 }
 
-export default function ConversationBoard({ conversation, answer, onAnswer, onExit }: ConversationBoardProps) {
-  const selected = answer ?? null
+export default function ConversationBoard({ conversation, onAnswer, onExit }: ConversationBoardProps) {
+  // Always starts unanswered on open, even for a conversation solved before,
+  // so a past result (used only for the list badge) never blocks retrying.
+  const [selected, setSelected] = useState<number | null>(null)
+
+  function handleSelect(choiceIndex: number) {
+    if (selected !== null) return
+    setSelected(choiceIndex)
+    onAnswer(choiceIndex)
+  }
 
   return (
     <Layout title="대화추론" accentColor="var(--color-primary)">
@@ -59,7 +67,7 @@ export default function ConversationBoard({ conversation, answer, onAnswer, onEx
               state={state}
               disabled={selected !== null}
               large={choice.isEmoji}
-              onClick={() => onAnswer(i)}
+              onClick={() => handleSelect(i)}
             >
               {choice.label}
             </ChoiceButton>

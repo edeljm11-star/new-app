@@ -17,8 +17,10 @@ export function usePersistedAnswers(storageKey: string) {
     window.localStorage.setItem(storageKey, JSON.stringify(answers))
   }, [storageKey, answers])
 
+  // Overwrites on every call (not just the first) so retrying an item after
+  // it's already been solved updates its badge to reflect the latest try.
   function recordAnswer(id: string, choiceIndex: number) {
-    setAnswers((prev) => (id in prev ? prev : { ...prev, [id]: choiceIndex }))
+    setAnswers((prev) => ({ ...prev, [id]: choiceIndex }))
   }
 
   return { answers, recordAnswer }
