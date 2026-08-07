@@ -1,0 +1,102 @@
+.page {
+  min-height: 100vh;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 48px 20px 40px;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.logo {
+  font-size: 44px;
+  margin-bottom: 8px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 900;
+  color: var(--color-primary-dark);
+}
+
+.subtitle {
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--color-text-soft);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: 24px 20px;
+  box-shadow: var(--shadow-soft);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-soft);
+}
+
+.field input {
+  font-family: inherit;
+  font-size: 15px;
+  padding: 12px 14px;
+  border: 1px solid #e6ded0;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.errorText {
+  color: var(--color-wrong);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.successText {
+  color: var(--color-primary-dark);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.submitButton {
+  padding: 14px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: white;
+  font-weight: 800;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.submitButton:disabled {
+  opacity: 0.6;
+}
+
+.switchLink {
+  display: block;
+  text-align: center;
+  margin-top: 20px;
+  font-size: 14px;
+  color: var(--color-text-soft);
+}
+
+.switchLink a {
+  color: var(--color-primary-dark);
+  font-weight: 700;
+  text-decoration: underline;
+}

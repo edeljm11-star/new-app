@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
 import styles from './Home.module.css'
 
 const menu = [
@@ -37,6 +38,13 @@ const menu = [
 ]
 
 export default function Home() {
+  const navigate = useNavigate()
+
+  async function handleLogout() {
+    await supabase.auth.signOut()
+    navigate('/login')
+  }
+
   return (
     <div className={styles.page}>
       <header className={styles.hero}>
@@ -62,9 +70,14 @@ export default function Home() {
         ))}
       </div>
 
-      <Link to="/admin" className={styles.adminLink}>
-        관리자
-      </Link>
+      <div className={styles.footerLinks}>
+        <Link to="/admin" className={styles.adminLink}>
+          관리자
+        </Link>
+        <button type="button" className={styles.adminLink} onClick={handleLogout}>
+          로그아웃
+        </button>
+      </div>
     </div>
   )
 }
