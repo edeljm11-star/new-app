@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import styles from './Auth.module.css'
 
@@ -18,6 +18,7 @@ export default function Signup() {
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
+  const navigate = useNavigate()
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -38,6 +39,13 @@ export default function Signup() {
     }
     if (data.user && data.user.identities && data.user.identities.length === 0) {
       setError('이미 가입된 이메일이에요. 로그인해주세요.')
+      return
+    }
+    // Email confirmation is off, so signUp already returns a session — go
+    // straight in. If it's ever turned back on, fall back to the "check
+    // your email" screen instead of leaving the user stuck.
+    if (data.session) {
+      navigate('/')
       return
     }
     setDone(true)
