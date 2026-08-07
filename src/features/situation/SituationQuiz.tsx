@@ -22,7 +22,7 @@ const TITLES: Record<string, string> = {
 }
 
 function titleOf(item: SituationItem): string {
-  return TITLES[item.id] ?? item.question
+  return TITLES[item.id] ?? item.questions[0].question
 }
 
 export default function SituationQuiz() {
@@ -69,8 +69,12 @@ export default function SituationQuiz() {
       <div className={styles.list}>
         {situations.map((item) => {
           const answer = answers[item.id]
-          const isCorrect = answer !== undefined && answer === item.answerIndex
-          const isWrong = answer !== undefined && answer !== item.answerIndex
+          // Single-question items persist the picked choice index; multi-
+          // question items persist the final score out of questions.length.
+          const isSingle = item.questions.length === 1
+          const isCorrect =
+            answer !== undefined && (isSingle ? answer === item.questions[0].answerIndex : answer === item.questions.length)
+          const isWrong = answer !== undefined && !isCorrect
           return (
             <button key={item.id} type="button" className={styles.itemCard} onClick={() => setOpenId(item.id)}>
               <span className={styles.itemEmoji}>{item.scene.items[0]?.emoji ?? '🤔'}</span>

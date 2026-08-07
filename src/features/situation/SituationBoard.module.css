@@ -1,3 +1,26 @@
+.sceneWrap {
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+.categoryLabel {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--color-pink);
+  background: var(--color-pink-soft);
+  border-radius: 999px;
+  padding: 4px 14px;
+  width: fit-content;
+  margin: 0 auto 10px;
+}
+
+.actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
 .question {
   font-size: 19px;
   font-weight: 800;

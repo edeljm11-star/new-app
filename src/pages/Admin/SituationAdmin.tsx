@@ -5,6 +5,7 @@ import {
   createSituation,
   updateSituation,
   deleteSituation,
+  type SituationCategory,
   type SituationItem,
 } from '../../features/situation/api'
 import styles from './admin.module.css'
@@ -16,30 +17,45 @@ interface SceneItemDraft {
   size: string
 }
 
-interface Draft {
+interface QuestionDraft {
+  category: '' | SituationCategory
   question: string
   choicesText: string
   answerLine: string
   explanation: string
+}
+
+interface Draft {
+  questions: QuestionDraft[]
   sceneBg: string
   items: SceneItemDraft[]
 }
 
+const CATEGORY_OPTIONS: { value: '' | SituationCategory; label: string }[] = [
+  { value: '', label: '(없음)' },
+  { value: 'observe', label: '관찰' },
+  { value: 'emotion', label: '감정' },
+  { value: 'thought', label: '사고' },
+  { value: 'apply', label: '적용' },
+]
+
+const emptyQuestion: QuestionDraft = { category: '', question: '', choicesText: '', answerLine: '1', explanation: '' }
+
 const emptyDraft: Draft = {
-  question: '',
-  choicesText: '',
-  answerLine: '1',
-  explanation: '',
+  questions: [emptyQuestion],
   sceneBg: 'var(--color-pink-soft)',
   items: [{ emoji: '', top: '50%', left: '50%', size: '60' }],
 }
 
 function draftFromItem(item: SituationItem): Draft {
   return {
-    question: item.question,
-    choicesText: item.choices.join('\n'),
-    answerLine: String(item.answerIndex + 1),
-    explanation: item.explanation,
+    questions: item.questions.map((q) => ({
+      category: q.category ?? '',
+      question: q.question,
+      choicesText: q.choices.join('\n'),
+      answerLine: String(q.answerIndex + 1),
+      explanation: q.explanation,
+    })),
     sceneBg: item.scene.bg,
     items: item.scene.items.map((i) => ({
       emoji: i.emoji,
@@ -51,13 +67,21 @@ function draftFromItem(item: SituationItem): Draft {
 }
 
 function draftToItem(draft: Draft): Omit<SituationItem, 'id'> {
-  const choices = draft.choicesText.split('\n').map((s) => s.trim()).filter(Boolean)
-  const answerIndex = Math.min(Math.max(Number(draft.answerLine) - 1, 0), choices.length - 1)
+  const questions = draft.questions
+    .filter((q) => q.question.trim())
+    .map((q) => {
+      const choices = q.choicesText.split('\n').map((s) => s.trim()).filter(Boolean)
+      const answerIndex = Math.min(Math.max(Number(q.answerLine) - 1, 0), choices.length - 1)
+      return {
+        category: q.category || undefined,
+        question: q.question.trim(),
+        choices,
+        answerIndex,
+        explanation: q.explanation.trim(),
+      }
+    })
   return {
-    question: draft.question.trim(),
-    choices,
-    answerIndex,
-    explanation: draft.explanation.trim(),
+    questions,
     scene: {
       bg: draft.sceneBg.trim(),
       items: draft.items
@@ -117,6 +141,21 @@ export default function SituationAdmin() {
     reload()
   }
 
+  function updateQuestion(index: number, patch: Partial<QuestionDraft>) {
+    setDraft((d) => ({
+      ...d,
+      questions: d.questions.map((q, i) => (i === index ? { ...q, ...patch } : q)),
+    }))
+  }
+
+  function addQuestion() {
+    setDraft((d) => ({ ...d, questions: [...d.questions, emptyQuestion] }))
+  }
+
+  function removeQuestion(index: number) {
+    setDraft((d) => ({ ...d, questions: d.questions.filter((_, i) => i !== index) }))
+  }
+
   function updateItemRow(index: number, patch: Partial<SceneItemDraft>) {
     setDraft((d) => ({
       ...d,
@@ -143,39 +182,49 @@ export default function SituationAdmin() {
 
       {editingId ? (
         <div className={styles.form}>
-          <div className={styles.field}>
-            <label>질문</label>
-            <input
-              type="text"
-              value={draft.question}
-              onChange={(e) => setDraft((d) => ({ ...d, question: e.target.value }))}
-            />
-          </div>
-
-          <div className={styles.field}>
-            <label>보기 (한 줄에 하나씩)</label>
-            <textarea
-              value={draft.choicesText}
-              onChange={(e) => setDraft((d) => ({ ...d, choicesText: e.target.value }))}
-            />
-          </div>
-
-          <div className={styles.field}>
-            <label>정답 줄 번호 (1부터 시작)</label>
-            <input
-              type="number"
-              min={1}
-              value={draft.answerLine}
-              onChange={(e) => setDraft((d) => ({ ...d, answerLine: e.target.value }))}
-            />
-          </div>
-
-          <div className={styles.field}>
-            <label>설명 (정답을 고른 뒤 보여줄 문구)</label>
-            <textarea
-              value={draft.explanation}
-              onChange={(e) => setDraft((d) => ({ ...d, explanation: e.target.value }))}
-            />
+          <div className={styles.subsection}>
+            <p className={styles.subsectionTitle}>문제 목록 (같은 그림으로 여러 문제를 풀어요)</p>
+            {draft.questions.map((q, i) => (
+              <div key={i} className={styles.itemRow}>
+                <div className={styles.field}>
+                  <label>카테고리</label>
+                  <select value={q.category} onChange={(e) => updateQuestion(i, { category: e.target.value as QuestionDraft['category'] })}>
+                    {CATEGORY_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className={styles.field}>
+                  <label>질문</label>
+                  <input type="text" value={q.question} onChange={(e) => updateQuestion(i, { question: e.target.value })} />
+                </div>
+                <div className={styles.field}>
+                  <label>보기 (한 줄에 하나씩)</label>
+                  <textarea value={q.choicesText} onChange={(e) => updateQuestion(i, { choicesText: e.target.value })} />
+                </div>
+                <div className={styles.field}>
+                  <label>정답 줄 번호 (1부터 시작)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={q.answerLine}
+                    onChange={(e) => updateQuestion(i, { answerLine: e.target.value })}
+                  />
+                </div>
+                <div className={styles.field}>
+                  <label>설명 (정답을 고른 뒤 보여줄 문구)</label>
+                  <textarea value={q.explanation} onChange={(e) => updateQuestion(i, { explanation: e.target.value })} />
+                </div>
+                <button type="button" className={styles.removeRowButton} onClick={() => removeQuestion(i)}>
+                  문제 삭제
+                </button>
+              </div>
+            ))}
+            <button type="button" className={styles.addRowButton} onClick={addQuestion}>
+              + 문제 추가
+            </button>
           </div>
 
           <div className={styles.subsection}>
@@ -243,7 +292,10 @@ export default function SituationAdmin() {
             <div className={styles.list}>
               {items.map((item) => (
                 <div key={item.id} className={styles.row}>
-                  <span className={styles.rowTitle}>{item.question}</span>
+                  <span className={styles.rowTitle}>
+                    {item.questions[0].question}
+                    {item.questions.length > 1 ? ` (문제 ${item.questions.length}개)` : ''}
+                  </span>
                   <div className={styles.rowActions}>
                     <button type="button" className={styles.smallButton} onClick={() => startEdit(item)}>
                       수정
