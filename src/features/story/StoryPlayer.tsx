@@ -126,7 +126,9 @@ export default function StoryPlayer({ story, onExit }: StoryPlayerProps) {
   if (stage === 'reading') {
     return (
       <div>
-        <EmojiScene scene={{ bg: 'var(--color-blue-soft)', items: [{ emoji: story.emoji, top: '50%', left: '50%', size: 84 }] }} />
+        <div className={styles.cover}>
+          <EmojiScene scene={{ bg: 'var(--color-blue-soft)', items: [{ emoji: story.emoji, top: '50%', left: '50%', size: 64 }] }} />
+        </div>
         <h2 className={styles.title}>{story.title}</h2>
 
         <div className={styles.ttsBar}>
