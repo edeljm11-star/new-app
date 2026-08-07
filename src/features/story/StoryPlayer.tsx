@@ -118,7 +118,9 @@ export default function StoryPlayer({ story, onExit }: StoryPlayerProps) {
   }
 
   if (finished) {
-    return <ResultScreen score={score} total={questions.length} onRetry={handleRetry} />
+    return (
+      <ResultScreen score={score} total={questions.length} onRetry={handleRetry} onExit={onExit} exitLabel="다른 이야기 고르기" />
+    )
   }
 
   if (stage === 'reading') {
