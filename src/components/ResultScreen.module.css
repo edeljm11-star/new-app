@@ -41,8 +41,13 @@
 }
 
 .homeLink {
+  background: none;
+  border: none;
   color: var(--color-text-soft);
   font-weight: 700;
+  font-size: 14px;
+  font-family: inherit;
   text-decoration: none;
   padding: 8px;
+  cursor: pointer;
 }

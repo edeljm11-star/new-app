@@ -108,7 +108,7 @@ export default function SituationBoard({ situation, answer, onAnswer, onExit }: 
   if (finished) {
     return (
       <Layout title="상황추론" accentColor="var(--color-pink)">
-        <ResultScreen score={score} total={questions.length} onRetry={handleRetry} />
+        <ResultScreen score={score} total={questions.length} onRetry={handleRetry} onExit={onExit} exitLabel="다른 문제 고르기" />
       </Layout>
     )
   }
