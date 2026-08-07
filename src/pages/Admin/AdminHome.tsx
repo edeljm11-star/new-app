@@ -7,6 +7,7 @@ const menu = [
   { to: '/admin/stories', emoji: '📖', title: '내용이해 관리' },
   { to: '/admin/conversations', emoji: '💬', title: '대화추론 관리' },
   { to: '/admin/crossword', emoji: '🔤', title: '낱말퀴즈 관리' },
+  { to: '/admin/users', emoji: '👥', title: '회원 관리' },
 ]
 
 export default function AdminHome() {

@@ -14,6 +14,7 @@ import SituationAdmin from './pages/Admin/SituationAdmin'
 import StoryAdmin from './pages/Admin/StoryAdmin'
 import ConversationAdmin from './pages/Admin/ConversationAdmin'
 import CrosswordAdmin from './pages/Admin/CrosswordAdmin'
+import UsersAdmin from './pages/Admin/UsersAdmin'
 
 function App() {
   return (
@@ -99,6 +100,14 @@ function App() {
           element={
             <RequireAdmin>
               <CrosswordAdmin />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <RequireAdmin>
+              <UsersAdmin />
             </RequireAdmin>
           }
         />
