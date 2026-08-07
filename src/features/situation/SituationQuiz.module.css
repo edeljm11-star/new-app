@@ -8,15 +8,15 @@
 .list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 8px;
 }
 
 .itemCard {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   width: 100%;
-  padding: 20px;
+  padding: 10px 16px;
   border: none;
   border-radius: var(--radius-lg);
   background: var(--color-surface);
@@ -31,22 +31,22 @@
 }
 
 .itemEmoji {
-  font-size: 32px;
+  font-size: 22px;
   flex-shrink: 0;
 }
 
 .itemTitle {
   flex: 1;
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 800;
   color: var(--color-text);
 }
 
 .itemStatus {
-  font-size: 15px;
+  font-size: 12px;
   font-weight: 800;
-  width: 26px;
-  height: 26px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   display: flex;
   align-items: center;
