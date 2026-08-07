@@ -1,7 +1,7 @@
 .list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 8px;
 }
 
 .intro {
@@ -14,9 +14,9 @@
 .storyCard {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   width: 100%;
-  padding: 20px;
+  padding: 10px 16px;
   border: none;
   border-radius: var(--radius-lg);
   background: var(--color-surface);
@@ -31,11 +31,11 @@
 }
 
 .storyEmoji {
-  font-size: 36px;
+  font-size: 24px;
 }
 
 .storyTitle {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 800;
   color: var(--color-text);
 }
