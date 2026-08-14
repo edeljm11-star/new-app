@@ -20,7 +20,7 @@ export interface VocabQuizItem {
   word: string
   choices: string[]
   answerIndex: number
-  type?: 'vocab' | 'proverb' | 'synonym' | 'antonym'
+  type?: 'vocab' | 'proverb' | 'synonym' | 'antonym' | 'spelling'
 }
 
 export interface Story {

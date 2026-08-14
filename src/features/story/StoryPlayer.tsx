@@ -15,12 +15,14 @@ type FlatQuestion =
   | { kind: 'proverb'; prompt: string; choices: string[]; answerIndex: number }
   | { kind: 'synonym'; prompt: string; choices: string[]; answerIndex: number }
   | { kind: 'antonym'; prompt: string; choices: string[]; answerIndex: number }
+  | { kind: 'spelling'; prompt: string; choices: string[]; answerIndex: number }
 
 const VOCAB_QUIZ_KIND: Record<NonNullable<Story['vocabQuiz'][number]['type']>, FlatQuestion['kind']> = {
   vocab: 'vocab',
   proverb: 'proverb',
   synonym: 'synonym',
   antonym: 'antonym',
+  spelling: 'spelling',
 }
 
 const VOCAB_QUIZ_PROMPT: Record<FlatQuestion['kind'], (word: string) => string> = {
@@ -30,6 +32,7 @@ const VOCAB_QUIZ_PROMPT: Record<FlatQuestion['kind'], (word: string) => string> 
   proverb: (word) => `'${word}'는 무슨 뜻일까요?`,
   synonym: (word) => `'${word}'와 비슷한 뜻을 가진 낱말은 무엇일까요?`,
   antonym: (word) => `'${word}'와 반대되는 뜻을 가진 낱말은 무엇일까요?`,
+  spelling: () => '다음 중 맞춤법이 바르게 쓰인 것은 무엇일까요?',
 }
 
 function buildQuestions(story: Story): FlatQuestion[] {
@@ -64,6 +67,7 @@ const kindLabel: Record<FlatQuestion['kind'], string> = {
   proverb: '속담 퀴즈',
   synonym: '비슷한말 퀴즈',
   antonym: '반대말 퀴즈',
+  spelling: '맞춤법 퀴즈',
 }
 
 interface StoryPlayerProps {

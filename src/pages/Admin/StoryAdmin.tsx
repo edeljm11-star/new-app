@@ -27,6 +27,7 @@ const VOCAB_QUIZ_TYPE_OPTIONS: { value: VocabQuizType; label: string }[] = [
   { value: 'proverb', label: '속담·사자성어' },
   { value: 'synonym', label: '비슷한말' },
   { value: 'antonym', label: '반대말' },
+  { value: 'spelling', label: '맞춤법' },
 ]
 
 interface Draft {
