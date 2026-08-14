@@ -49,7 +49,7 @@ export default function CrosswordPuzzle() {
         <p className={styles.intro}>아직 낱말퀴즈가 없어요. 관리자 화면에서 추가해주세요.</p>
       ) : (
         <div className={styles.list}>
-          <p className={styles.intro}>풀고 싶은 낱말퀴즈를 골라보세요</p>
+          <p className={styles.intro}>풀고 싶은 낱말퀴즈를 골라보세요 ({puzzles.length}개)</p>
           {groups.map(([category, items]) => {
             const isOpen = openCategory === category
             return (
