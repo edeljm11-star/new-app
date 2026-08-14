@@ -69,9 +69,10 @@ const kindLabel: Record<FlatQuestion['kind'], string> = {
 interface StoryPlayerProps {
   story: Story
   onExit: () => void
+  onFinish?: () => void
 }
 
-export default function StoryPlayer({ story, onExit }: StoryPlayerProps) {
+export default function StoryPlayer({ story, onExit, onFinish }: StoryPlayerProps) {
   const [stage, setStage] = useState<'reading' | 'quiz'>('reading')
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
@@ -102,6 +103,7 @@ export default function StoryPlayer({ story, onExit }: StoryPlayerProps) {
   function handleNext() {
     if (isLast) {
       setFinished(true)
+      onFinish?.()
       return
     }
     setIndex((i) => i + 1)
