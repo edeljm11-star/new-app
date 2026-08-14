@@ -107,7 +107,25 @@
 }
 
 .subTitle {
+  flex: 1;
   font-size: 13px;
   font-weight: 700;
   color: var(--color-text);
+}
+
+.itemStatus {
+  font-size: 12px;
+  font-weight: 800;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.statusDone {
+  background: var(--color-correct-bg);
+  color: var(--color-correct);
 }

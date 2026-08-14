@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useRef,
   useMemo,
   useState,
@@ -29,9 +30,10 @@ function emptyGrid(rows: number, cols: number): string[][] {
 interface CrosswordBoardProps {
   puzzle: CrosswordPuzzle
   onExit: () => void
+  onComplete?: () => void
 }
 
-export default function CrosswordBoard({ puzzle, onExit }: CrosswordBoardProps) {
+export default function CrosswordBoard({ puzzle, onExit, onComplete }: CrosswordBoardProps) {
   const rows = puzzle.grid.length
   const cols = puzzle.grid[0].length
 
@@ -84,6 +86,14 @@ export default function CrosswordBoard({ puzzle, onExit }: CrosswordBoardProps) 
     puzzle.grid.every((rowArr, r) =>
       rowArr.every((cell, c) => cell === null || answers[r][c] === cell),
     )
+
+  // onComplete is intentionally left out of the deps: it's a fresh closure
+  // on every parent render, and depending on it would re-fire this effect
+  // (and thus recordAnswer -> parent state update -> new closure) in a loop.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (isComplete) onComplete?.()
+  }, [isComplete])
 
   function focusHiddenInput() {
     if (!hiddenInputRef.current) return

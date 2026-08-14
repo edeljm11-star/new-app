@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import Layout from '../../components/Layout'
+import { usePersistedAnswers } from '../../hooks/usePersistedAnswers'
 import { listPuzzles, type CrosswordPuzzle as CrosswordPuzzleType } from './api'
 import CrosswordBoard from './CrosswordBoard'
 import styles from './CrosswordPuzzle.module.css'
@@ -24,6 +25,7 @@ export default function CrosswordPuzzle() {
   const [puzzles, setPuzzles] = useState<CrosswordPuzzleType[] | null>(null)
   const [puzzleId, setPuzzleId] = useState<string | null>(null)
   const [openCategory, setOpenCategory] = useState<string | null>(null)
+  const { answers, recordAnswer } = usePersistedAnswers('crosswordAnswers')
 
   useEffect(() => {
     listPuzzles().then(setPuzzles)
@@ -37,7 +39,12 @@ export default function CrosswordPuzzle() {
       {puzzles === null ? (
         <p className={styles.intro}>불러오는 중이에요...</p>
       ) : puzzle ? (
-        <CrosswordBoard key={puzzle.id} puzzle={puzzle} onExit={() => setPuzzleId(null)} />
+        <CrosswordBoard
+          key={puzzle.id}
+          puzzle={puzzle}
+          onExit={() => setPuzzleId(null)}
+          onComplete={() => recordAnswer(puzzle.id, 1)}
+        />
       ) : puzzles.length === 0 ? (
         <p className={styles.intro}>아직 낱말퀴즈가 없어요. 관리자 화면에서 추가해주세요.</p>
       ) : (
@@ -69,6 +76,9 @@ export default function CrosswordPuzzle() {
                       >
                         <span className={styles.subNumber}>{i + 1}</span>
                         <span className={styles.subTitle}>{i + 1}번 낱말퀴즈</span>
+                        {answers[p.id] !== undefined && (
+                          <span className={[styles.itemStatus, styles.statusDone].join(' ')}>✓</span>
+                        )}
                       </button>
                     ))}
                   </div>
