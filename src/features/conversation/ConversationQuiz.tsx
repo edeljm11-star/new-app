@@ -154,7 +154,7 @@ export default function ConversationQuiz() {
 
   return (
     <Layout title="대화추론" accentColor="var(--color-primary)">
-      <p className={styles.intro}>풀고 싶은 대화를 골라보세요</p>
+      <p className={styles.intro}>풀고 싶은 대화를 골라보세요 ({conversations.length}개)</p>
       <div className={styles.list}>
         {conversations.map((item) => {
           const answer = answers[item.id]

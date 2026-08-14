@@ -145,7 +145,7 @@ export default function SituationQuiz() {
 
   return (
     <Layout title="상황추론" accentColor="var(--color-pink)">
-      <p className={styles.intro}>풀고 싶은 문제를 골라보세요</p>
+      <p className={styles.intro}>풀고 싶은 문제를 골라보세요 ({situations.length}개)</p>
       <div className={styles.list}>
         {situations.map((item) => {
           const answer = answers[item.id]

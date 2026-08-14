@@ -31,7 +31,7 @@ export default function StoryQuiz() {
         <p className={styles.intro}>아직 이야기가 없어요. 관리자 화면에서 추가해주세요.</p>
       ) : (
         <div className={styles.list}>
-          <p className={styles.intro}>듣고 싶은 이야기를 골라보세요</p>
+          <p className={styles.intro}>듣고 싶은 이야기를 골라보세요 ({stories.length}개)</p>
           {stories.map((s) => (
             <button key={s.id} type="button" className={styles.storyCard} onClick={() => setStoryId(s.id)}>
               <span className={styles.storyEmoji}>{s.emoji}</span>
