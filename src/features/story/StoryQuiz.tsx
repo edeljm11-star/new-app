@@ -5,18 +5,34 @@ import { listStories, type Story } from './api'
 import StoryPlayer from './StoryPlayer'
 import styles from './StoryQuiz.module.css'
 
-type StoryGroupKey = 'life' | 'proverb'
+type StoryGroupKey = 'life' | 'proverb' | 'folktale'
 
 const GROUP_DEFS: { key: StoryGroupKey; label: string; emoji: string }[] = [
   { key: 'life', label: '생활 이야기', emoji: '🌼' },
   { key: 'proverb', label: '속담 이야기', emoji: '📜' },
+  { key: 'folktale', label: '동화 이야기', emoji: '🏯' },
 ]
 
-// Stories don't carry a content-type field of their own -- the two flavors
-// (original everyday-life stories vs. stories built around teaching a
-// Korean proverb) only show up in the title/plot itself, so each id is
-// hand-assigned here. Anything created later via the admin screen (random
-// uuid ids) falls back to the 'life' bucket below.
+// Korean folktales and world classic fairy tales, retold as short
+// comprehension passages (e.g. 흥부와 놀부, 인어공주).
+const FOLKTALE_IDS = new Set([
+  'heungbu-swallow-gourd',
+  'kongjwi-lost-golden-shoe',
+  'sun-moon-siblings-rope',
+  'fairy-and-woodcutter',
+  'snail-bride-secret',
+  'golden-axe-silver-axe',
+  'tiger-and-dried-persimmon',
+  'porridge-granny-and-tiger',
+  'goblin-magic-club',
+  'magpie-repays-kindness',
+])
+
+// Stories don't carry a content-type field of their own -- the three flavors
+// (original everyday-life stories, stories built around teaching a Korean
+// proverb, and folktale retellings) only show up in the title/plot itself,
+// so each id is hand-assigned here. Anything not listed (including future
+// admin-created items) falls back to the 'life' bucket below.
 const PROVERB_IDS = new Set([
   'easy-quiz-surprise',
   'small-village-champion',
@@ -85,7 +101,9 @@ const PROVERB_IDS = new Set([
 ])
 
 function groupOf(story: Story): StoryGroupKey {
-  return PROVERB_IDS.has(story.id) ? 'proverb' : 'life'
+  if (FOLKTALE_IDS.has(story.id)) return 'folktale'
+  if (PROVERB_IDS.has(story.id)) return 'proverb'
+  return 'life'
 }
 
 function groupStories(stories: Story[]) {
