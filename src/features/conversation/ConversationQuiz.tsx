@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Layout from '../../components/Layout'
 import { usePersistedAnswers } from '../../hooks/usePersistedAnswers'
 import { listConversations, type ConversationItem } from './api'
@@ -115,14 +115,96 @@ function titleOf(item: ConversationItem): string {
   return TITLES[item.id] ?? item.situation
 }
 
+type ConversationGroupKey = 'friend' | 'family' | 'teacher' | 'hospital' | 'store' | 'online' | 'community'
+
+const GROUP_DEFS: { key: ConversationGroupKey; label: string; emoji: string }[] = [
+  { key: 'friend', label: '친구와의 대화', emoji: '👫' },
+  { key: 'family', label: '가족과의 대화', emoji: '👨‍👩‍👧' },
+  { key: 'teacher', label: '선생님과의 대화', emoji: '🍎' },
+  { key: 'hospital', label: '병원에서의 대화', emoji: '🏥' },
+  { key: 'store', label: '가게에서의 대화', emoji: '🏪' },
+  { key: 'online', label: '온라인 대화', emoji: '📱' },
+  { key: 'community', label: '마을 어른과의 대화', emoji: '🧑‍🤝‍🧑' },
+]
+
+// Conversation ids don't carry the counterpart/place of the exchange, so
+// each one is hand-assigned here based on its scene-setting sentence.
+// Anything not listed (including future admin-created items) falls back to
+// the 'friend' bucket, which is also where most existing content lives.
+const GROUP_OF: Record<string, ConversationGroupKey> = {
+  'parent-curfew-negotiate': 'family',
+  'sibling-toy-sharing': 'family',
+  'parent-grade-report': 'family',
+  'sibling-homework-help': 'family',
+  'family-trip-planning': 'family',
+  'parent-allowance-request': 'family',
+  'sibling-room-share': 'family',
+  'parent-pet-request': 'family',
+  'new-sibling-announcement': 'family',
+  'sibling-jealousy': 'family',
+  'chores-division': 'family',
+  'screen-time-argument': 'family',
+
+  'forgot-homework-teacher': 'teacher',
+  'field-trip-permission': 'teacher',
+  'computer-error-help': 'teacher',
+  'presentation-nervous': 'teacher',
+  'lost-textbook-teacher': 'teacher',
+  'extra-credit-question': 'teacher',
+  'seat-change-request-teacher': 'teacher',
+  'club-activity-signup': 'teacher',
+  'makeup-test-request': 'teacher',
+  'reading-recommendation-teacher': 'teacher',
+  'online-class-question-emoji': 'teacher',
+
+  'stomach-ache-doctor': 'hospital',
+  'broken-arm-checkup': 'hospital',
+  'allergy-checkup': 'hospital',
+  'dental-checkup': 'hospital',
+  'flu-symptoms': 'hospital',
+  'eye-checkup': 'hospital',
+  'vet-pet-checkup': 'hospital',
+
+  'bookstore-recommendation': 'store',
+  'shoe-size-exchange': 'store',
+  'bakery-order': 'store',
+  'lost-and-found-store': 'store',
+  'sporting-goods-advice': 'store',
+  'pet-shop-question': 'store',
+
+  'group-chat-misunderstanding': 'online',
+  'online-chat-misunderstanding-emoji': 'online',
+  'video-call-lag-emoji': 'online',
+  'game-invite-emoji': 'online',
+  'social-media-comment-emoji': 'online',
+
+  'coach-team-strategy': 'community',
+  'librarian-book-search': 'community',
+  'neighbor-noise-apology': 'community',
+  'bus-driver-question': 'community',
+}
+
+function groupOf(item: ConversationItem): ConversationGroupKey {
+  return GROUP_OF[item.id] ?? 'friend'
+}
+
+function groupConversations(items: ConversationItem[]) {
+  return GROUP_DEFS.map((def) => ({ def, items: items.filter((item) => groupOf(item) === def.key) })).filter(
+    (g) => g.items.length > 0,
+  )
+}
+
 export default function ConversationQuiz() {
   const [conversations, setConversations] = useState<ConversationItem[] | null>(null)
+  const [openGroup, setOpenGroup] = useState<ConversationGroupKey | null>(null)
   const [openId, setOpenId] = useState<string | null>(null)
   const { answers, recordAnswer } = usePersistedAnswers('conversationAnswers')
 
   useEffect(() => {
     listConversations().then(setConversations)
   }, [])
+
+  const groups = useMemo(() => (conversations ? groupConversations(conversations) : []), [conversations])
 
   if (conversations === null) {
     return (
@@ -156,17 +238,39 @@ export default function ConversationQuiz() {
     <Layout title="대화추론" accentColor="var(--color-primary)">
       <p className={styles.intro}>풀고 싶은 대화를 골라보세요 ({conversations.length}개)</p>
       <div className={styles.list}>
-        {conversations.map((item) => {
-          const answer = answers[item.id]
-          const isCorrect = answer !== undefined && answer === item.answerIndex
-          const isWrong = answer !== undefined && answer !== item.answerIndex
+        {groups.map(({ def, items }) => {
+          const isOpen = openGroup === def.key
           return (
-            <button key={item.id} type="button" className={styles.itemCard} onClick={() => setOpenId(item.id)}>
-              <span className={styles.itemEmoji}>💬</span>
-              <span className={styles.itemTitle}>{titleOf(item)}</span>
-              {isCorrect && <span className={[styles.itemStatus, styles.statusCorrect].join(' ')}>✓</span>}
-              {isWrong && <span className={[styles.itemStatus, styles.statusWrong].join(' ')}>✗</span>}
-            </button>
+            <div key={def.key} className={styles.categoryGroup}>
+              <button
+                type="button"
+                className={styles.itemCard}
+                aria-expanded={isOpen}
+                onClick={() => setOpenGroup((g) => (g === def.key ? null : def.key))}
+              >
+                <span className={styles.itemEmoji}>{def.emoji}</span>
+                <span className={styles.itemTitle}>{def.label}</span>
+                <span className={styles.groupCount}>{items.length}개</span>
+                <span className={[styles.chevron, isOpen ? styles.chevronOpen : ''].join(' ')}>▾</span>
+              </button>
+              {isOpen && (
+                <div className={styles.subList}>
+                  {items.map((item) => {
+                    const answer = answers[item.id]
+                    const isCorrect = answer !== undefined && answer === item.answerIndex
+                    const isWrong = answer !== undefined && answer !== item.answerIndex
+                    return (
+                      <button key={item.id} type="button" className={styles.subItem} onClick={() => setOpenId(item.id)}>
+                        <span className={styles.subEmoji}>💬</span>
+                        <span className={styles.subTitle}>{titleOf(item)}</span>
+                        {isCorrect && <span className={[styles.itemStatus, styles.statusCorrect].join(' ')}>✓</span>}
+                        {isWrong && <span className={[styles.itemStatus, styles.statusWrong].join(' ')}>✗</span>}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
           )
         })}
       </div>
