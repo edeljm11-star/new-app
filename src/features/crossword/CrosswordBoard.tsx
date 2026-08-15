@@ -27,6 +27,22 @@ function emptyGrid(rows: number, cols: number): string[][] {
   return Array.from({ length: rows }, () => Array.from({ length: cols }, () => ''))
 }
 
+// Must match .board's max-width/padding and .cellWrap's gap in
+// CrosswordBoard.module.css.
+const BOARD_MAX_WIDTH = 340
+const BOARD_PADDING = 10
+const CELL_GAP = 4
+// The neighborhood-1 ("우리동네") grid is 7 columns wide, which fills the
+// board edge-to-edge -- used as the reference cell size so narrow grids
+// (as few as 2 columns) don't stretch their cells to fill the same width.
+const REFERENCE_COLS = 7
+const REFERENCE_CELL_SIZE = (BOARD_MAX_WIDTH - BOARD_PADDING * 2 - (REFERENCE_COLS - 1) * CELL_GAP) / REFERENCE_COLS
+
+function cellSizeFor(cols: number): number {
+  const fitCellSize = (BOARD_MAX_WIDTH - BOARD_PADDING * 2 - (cols - 1) * CELL_GAP) / cols
+  return Math.min(REFERENCE_CELL_SIZE, fitCellSize)
+}
+
 interface CrosswordBoardProps {
   puzzle: CrosswordPuzzle
   onExit: () => void
@@ -222,7 +238,10 @@ export default function CrosswordBoard({ puzzle, onExit, onComplete }: Crossword
         onCompositionEnd={handleHiddenCompositionEnd}
         onKeyDown={handleHiddenKeyDown}
       />
-      <div className={styles.board} style={{ '--cols': cols } as React.CSSProperties}>
+      <div
+        className={styles.board}
+        style={{ '--cols': cols, '--cell-size': `${cellSizeFor(cols)}px` } as React.CSSProperties}
+      >
         {puzzle.grid.map((rowArr, r) =>
           rowArr.map((cell, c) => {
             if (cell === null) return <div key={`${r}-${c}`} className={styles.blockCell} />
