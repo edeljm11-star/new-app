@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Layout from '../../components/Layout'
 import { usePersistedAnswers } from '../../hooks/usePersistedAnswers'
 import { listSituations, type SituationItem } from './api'
@@ -155,14 +155,198 @@ function titleOf(item: SituationItem): string {
   return TITLES[item.id] ?? item.questions[0].question
 }
 
+type SituationGroupKey =
+  | 'help'
+  | 'emotion'
+  | 'conflict'
+  | 'bullying'
+  | 'consideration'
+  | 'rules'
+  | 'honesty'
+  | 'manners'
+  | 'teamwork'
+  | 'etc'
+
+const GROUP_DEFS: { key: SituationGroupKey; label: string; emoji: string }[] = [
+  { key: 'help', label: '친구 돕기', emoji: '🤝' },
+  { key: 'emotion', label: '감정 이해·위로', emoji: '💗' },
+  { key: 'conflict', label: '갈등 해결', emoji: '🤔' },
+  { key: 'bullying', label: '따돌림·놀림 대처', emoji: '🛡️' },
+  { key: 'consideration', label: '배려·양보', emoji: '🌷' },
+  { key: 'rules', label: '규칙·안전 지키기', emoji: '🚦' },
+  { key: 'honesty', label: '정직·책임감', emoji: '✋' },
+  { key: 'manners', label: '공공장소 예절', emoji: '🏛️' },
+  { key: 'teamwork', label: '협동·모둠 활동', emoji: '👥' },
+  { key: 'etc', label: '기타', emoji: '📌' },
+]
+
+// Situation ids don't carry any grouping info of their own, so each one is
+// hand-assigned to a theme here. Anything created later via the admin screen
+// (random uuid ids) falls back to the 'etc' bucket below.
+const GROUP_OF: Record<string, SituationGroupKey> = {
+  'fell-down': 'help',
+  birthday: 'emotion',
+  'no-umbrella': 'emotion',
+  'toy-fight': 'conflict',
+  'perfect-score': 'emotion',
+  'group-project': 'teamwork',
+  gossip: 'bullying',
+  'team-sports': 'emotion',
+  'borrow-item': 'honesty',
+  bystander: 'bullying',
+  'broken-item': 'honesty',
+  'new-student': 'consideration',
+  'lost-item': 'emotion',
+  'unfair-blame': 'emotion',
+  'line-cutting': 'rules',
+  'not-picked': 'emotion',
+  'sibling-turn': 'rules',
+  'compliment-jealousy': 'emotion',
+  'promise-broken': 'conflict',
+  'accidental-hurt': 'honesty',
+  'cheating-on-test': 'honesty',
+  'chat-exclusion': 'bullying',
+  'losing-competition': 'emotion',
+  'plagiarism-temptation': 'honesty',
+  'rumor-spreading': 'bullying',
+  'class-pet-neglect': 'honesty',
+  'found-money': 'honesty',
+  'exam-stress-friend': 'emotion',
+  'sibling-comparison': 'emotion',
+  'team-blame-game': 'conflict',
+  'secret-diary-peek': 'honesty',
+  'language-barrier-student': 'consideration',
+  'borrowed-item-broken': 'honesty',
+  'appearance-teasing-witness': 'bullying',
+  'presentation-freeze': 'emotion',
+  'credit-hogging': 'teamwork',
+  'online-mean-comment': 'bullying',
+  'unfair-scolding': 'emotion',
+  'wheelchair-friend-inclusion': 'consideration',
+  'littering-witness': 'manners',
+  'spilled-paint-artclass': 'help',
+  'library-shelf-help': 'help',
+  'swing-cutting-line': 'rules',
+  'picky-eater-teasing': 'bullying',
+  'pool-water-fear': 'emotion',
+  'heavy-backpack-help': 'help',
+  'science-experiment-mistake': 'help',
+  'off-key-singing-tease': 'bullying',
+  'dodgeball-selfblame': 'emotion',
+  'academy-bus-seat': 'consideration',
+  'stationery-store-mischarge': 'honesty',
+  'amusement-park-scared-sibling': 'emotion',
+  'camping-tent-teamwork': 'teamwork',
+  'reading-room-noise': 'manners',
+  'classroom-cleanup-alone': 'help',
+  'bus-stop-rain-grandma': 'consideration',
+  'museum-touching-artwork': 'manners',
+  'soccer-foul-forgive': 'conflict',
+  'sandcastle-destroyed': 'honesty',
+  'classroom-meeting-ignored': 'emotion',
+  'online-game-blame': 'conflict',
+  'choir-practice-teasing': 'bullying',
+  'volunteer-giving-up': 'emotion',
+  'new-student-welcome-party': 'consideration',
+  'field-trip-room-assignment': 'conflict',
+  'vet-waiting-room-comfort': 'emotion',
+  'salon-cutting-line': 'rules',
+  'seesaw-weight-exclusion': 'bullying',
+  'school-garden-watering': 'honesty',
+  'lunch-line-junior-cutting': 'rules',
+  'school-play-forgotten-line': 'help',
+  'afterschool-alone-classroom': 'consideration',
+  'stairs-junior-fall': 'help',
+  'stationery-share-refused': 'emotion',
+  'tag-game-rule-breaking': 'rules',
+  'allergy-food-consideration': 'consideration',
+  'fieldtrip-busmotionsick': 'help',
+  'dogwalk-turn-conflict': 'conflict',
+  'festival-booth-empty': 'emotion',
+  'invention-idea-suspicion': 'conflict',
+  'online-class-mic-mistake': 'honesty',
+  'playground-bike-not-yielding': 'consideration',
+  'class-library-book-damage': 'honesty',
+  'taekwondo-belt-test-fail': 'emotion',
+  'playground-shade-exhausted': 'help',
+  'schoolstore-no-money': 'consideration',
+  'quiz-contest-wrong-answer': 'emotion',
+  'art-exhibit-low-score': 'emotion',
+  'relay-race-baton-drop': 'emotion',
+  'winter-camp-homesick': 'emotion',
+  'jungle-gym-turn-pushed': 'rules',
+  'lunchroom-tray-mess': 'manners',
+  'math-class-crying': 'emotion',
+  'art-show-missing-work': 'conflict',
+  'stationery-shop-theft-witness': 'honesty',
+  'playground-dog-fear': 'emotion',
+  'new-cook-greeting': 'manners',
+  'library-adult-phonecall': 'manners',
+  'tug-of-war-weak-teasing': 'conflict',
+  'art-class-sharing-paper': 'consideration',
+  'online-class-camera-off': 'rules',
+  'jungle-gym-rescue': 'help',
+  'academy-homework-cover': 'honesty',
+  'stationery-checkout-cutting': 'rules',
+  'parade-seat-saving': 'rules',
+  'campfire-danger-stop': 'rules',
+  'talent-show-stagefright': 'emotion',
+  'soccer-injury-firstaid': 'help',
+  'bus-motionsickness-medicine': 'help',
+  'pet-cafe-rough-handling': 'manners',
+  'bookstore-choice-advice': 'help',
+  'museum-visit-loud-group': 'manners',
+  'class-newspaper-freerider': 'teamwork',
+  'snowball-fight-hurt': 'honesty',
+  'picnic-no-lunchbox': 'consideration',
+  'flea-market-price-haggle': 'conflict',
+  'cheer-lost-voice-help': 'help',
+  'school-garden-harvest-share': 'conflict',
+  'art-class-copying': 'honesty',
+  'slide-climbing-wrongway': 'rules',
+  'swim-class-dive-teasing': 'bullying',
+  'class-magazine-review': 'emotion',
+  'group-chat-not-invited': 'bullying',
+  'park-bench-litter': 'manners',
+  'lunch-line-hungry-reason': 'rules',
+  'crosswalk-signal-ignoring': 'rules',
+  'art-supplies-left-messy': 'teamwork',
+  'classroom-plant-turn-dispute': 'teamwork',
+  'campfire-junior-scared': 'emotion',
+  'gazebo-adults-occupying': 'rules',
+  'library-return-forgotten-help': 'help',
+  'tablet-class-broken-device': 'help',
+  'cafeteria-food-waste': 'manners',
+  'bike-rental-no-helmet': 'rules',
+  'presentation-mic-broken': 'help',
+  'cleanup-sharp-object': 'rules',
+  'ice-rink-fall-support': 'help',
+  'fishcake-treat-friend': 'consideration',
+  'reading-club-unprepared': 'teamwork',
+  'school-band-instrument-mixup': 'conflict',
+}
+
+function groupOf(item: SituationItem): SituationGroupKey {
+  return GROUP_OF[item.id] ?? 'etc'
+}
+
+function groupSituations(items: SituationItem[]) {
+  return GROUP_DEFS.map((def) => ({ def, items: items.filter((item) => groupOf(item) === def.key) })).filter(
+    (g) => g.items.length > 0,
+  )
+}
+
 export default function SituationQuiz() {
   const [situations, setSituations] = useState<SituationItem[] | null>(null)
+  const [openGroup, setOpenGroup] = useState<SituationGroupKey | null>(null)
   const [openId, setOpenId] = useState<string | null>(null)
   const { answers, recordAnswer } = usePersistedAnswers('situationAnswers')
 
   useEffect(() => {
     listSituations().then(setSituations)
   }, [])
+
+  const groups = useMemo(() => (situations ? groupSituations(situations) : []), [situations])
 
   if (situations === null) {
     return (
@@ -197,21 +381,44 @@ export default function SituationQuiz() {
     <Layout title="상황추론" accentColor="var(--color-pink)">
       <p className={styles.intro}>풀고 싶은 문제를 골라보세요 ({situations.length}개)</p>
       <div className={styles.list}>
-        {situations.map((item) => {
-          const answer = answers[item.id]
-          // Single-question items persist the picked choice index; multi-
-          // question items persist the final score out of questions.length.
-          const isSingle = item.questions.length === 1
-          const isCorrect =
-            answer !== undefined && (isSingle ? answer === item.questions[0].answerIndex : answer === item.questions.length)
-          const isWrong = answer !== undefined && !isCorrect
+        {groups.map(({ def, items }) => {
+          const isOpen = openGroup === def.key
           return (
-            <button key={item.id} type="button" className={styles.itemCard} onClick={() => setOpenId(item.id)}>
-              <span className={styles.itemEmoji}>{item.scene.items[0]?.emoji ?? '🤔'}</span>
-              <span className={styles.itemTitle}>{titleOf(item)}</span>
-              {isCorrect && <span className={[styles.itemStatus, styles.statusCorrect].join(' ')}>✓</span>}
-              {isWrong && <span className={[styles.itemStatus, styles.statusWrong].join(' ')}>✗</span>}
-            </button>
+            <div key={def.key} className={styles.categoryGroup}>
+              <button
+                type="button"
+                className={styles.itemCard}
+                aria-expanded={isOpen}
+                onClick={() => setOpenGroup((g) => (g === def.key ? null : def.key))}
+              >
+                <span className={styles.itemEmoji}>{def.emoji}</span>
+                <span className={styles.itemTitle}>{def.label}</span>
+                <span className={styles.groupCount}>{items.length}개</span>
+                <span className={[styles.chevron, isOpen ? styles.chevronOpen : ''].join(' ')}>▾</span>
+              </button>
+              {isOpen && (
+                <div className={styles.subList}>
+                  {items.map((item) => {
+                    const answer = answers[item.id]
+                    // Single-question items persist the picked choice index; multi-
+                    // question items persist the final score out of questions.length.
+                    const isSingle = item.questions.length === 1
+                    const isCorrect =
+                      answer !== undefined &&
+                      (isSingle ? answer === item.questions[0].answerIndex : answer === item.questions.length)
+                    const isWrong = answer !== undefined && !isCorrect
+                    return (
+                      <button key={item.id} type="button" className={styles.subItem} onClick={() => setOpenId(item.id)}>
+                        <span className={styles.subEmoji}>{item.scene.items[0]?.emoji ?? '🤔'}</span>
+                        <span className={styles.subTitle}>{titleOf(item)}</span>
+                        {isCorrect && <span className={[styles.itemStatus, styles.statusCorrect].join(' ')}>✓</span>}
+                        {isWrong && <span className={[styles.itemStatus, styles.statusWrong].join(' ')}>✗</span>}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
           )
         })}
       </div>
