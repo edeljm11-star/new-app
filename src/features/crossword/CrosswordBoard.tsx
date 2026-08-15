@@ -43,6 +43,18 @@ function cellSizeFor(cols: number): number {
   return Math.min(REFERENCE_CELL_SIZE, fitCellSize)
 }
 
+// 11-column grids get squeezed down to the narrowest cells (~25px) of any
+// puzzle -- typed characters end up crowding out the small clue-number
+// badge in the corner. Keeping the board's width unchanged, cells are given
+// extra height (a taller rectangle instead of a square) so there's more
+// room to tell the number and the entered letter apart.
+const WIDE_COLS_THRESHOLD = 11
+const TALL_CELL_ASPECT_RATIO = '1 / 1.4'
+
+function cellAspectFor(cols: number): string {
+  return cols >= WIDE_COLS_THRESHOLD ? TALL_CELL_ASPECT_RATIO : '1'
+}
+
 interface CrosswordBoardProps {
   puzzle: CrosswordPuzzle
   onExit: () => void
@@ -240,7 +252,13 @@ export default function CrosswordBoard({ puzzle, onExit, onComplete }: Crossword
       />
       <div
         className={styles.board}
-        style={{ '--cols': cols, '--cell-size': `${cellSizeFor(cols)}px` } as React.CSSProperties}
+        style={
+          {
+            '--cols': cols,
+            '--cell-size': `${cellSizeFor(cols)}px`,
+            '--cell-aspect': cellAspectFor(cols),
+          } as React.CSSProperties
+        }
       >
         {puzzle.grid.map((rowArr, r) =>
           rowArr.map((cell, c) => {
