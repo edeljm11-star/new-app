@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   listPuzzles,
@@ -7,6 +7,7 @@ import {
   deletePuzzle,
   type CrosswordPuzzle,
 } from '../../features/crossword/api'
+import { groupByCategory } from '../../features/crossword/grouping'
 import styles from './admin.module.css'
 
 interface WordDraft {
@@ -85,6 +86,18 @@ export default function CrosswordAdmin() {
   const [editingId, setEditingId] = useState<string | 'new' | null>(null)
   const [draft, setDraft] = useState<Draft>(emptyDraft)
   const [saving, setSaving] = useState(false)
+  const [openCategories, setOpenCategories] = useState<Set<string>>(new Set())
+
+  const groups = useMemo(() => (items ? groupByCategory(items) : []), [items])
+
+  function toggleCategory(category: string) {
+    setOpenCategories((prev) => {
+      const next = new Set(prev)
+      if (next.has(category)) next.delete(category)
+      else next.add(category)
+      return next
+    })
+  }
 
   function reload() {
     listPuzzles().then(setItems)
@@ -315,19 +328,41 @@ export default function CrosswordAdmin() {
             <p className={styles.empty}>아직 낱말퀴즈가 없어요.</p>
           ) : (
             <div className={styles.list}>
-              {items.map((item) => (
-                <div key={item.id} className={styles.row}>
-                  <span className={styles.rowTitle}>{item.title}</span>
-                  <div className={styles.rowActions}>
-                    <button type="button" className={styles.smallButton} onClick={() => startEdit(item)}>
-                      수정
+              {groups.map(([category, groupItems]) => {
+                const isOpen = openCategories.has(category)
+                return (
+                  <div key={category}>
+                    <button
+                      type="button"
+                      className={styles.groupHeader}
+                      aria-expanded={isOpen}
+                      onClick={() => toggleCategory(category)}
+                    >
+                      <span className={styles.groupEmoji}>🔤</span>
+                      <span className={styles.groupLabel}>{category}</span>
+                      <span className={styles.groupCount}>{groupItems.length}개</span>
+                      <span className={[styles.groupChevron, isOpen ? styles.groupChevronOpen : ''].join(' ')}>▾</span>
                     </button>
-                    <button type="button" className={styles.dangerButton} onClick={() => handleDelete(item.id)}>
-                      삭제
-                    </button>
+                    {isOpen && (
+                      <div className={styles.groupBody}>
+                        {groupItems.map((item) => (
+                          <div key={item.id} className={styles.row}>
+                            <span className={styles.rowTitle}>{item.title}</span>
+                            <div className={styles.rowActions}>
+                              <button type="button" className={styles.smallButton} onClick={() => startEdit(item)}>
+                                수정
+                              </button>
+                              <button type="button" className={styles.dangerButton} onClick={() => handleDelete(item.id)}>
+                                삭제
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </>

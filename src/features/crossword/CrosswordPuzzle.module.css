@@ -129,3 +129,55 @@
   background: var(--color-correct-bg);
   color: var(--color-correct);
 }
+
+.numberGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 4px 4px 4px 20px;
+}
+
+.numberButton {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+
+.numberButton:active {
+  transform: scale(0.92);
+}
+
+.numberButtonDone {
+  background: var(--color-correct-bg);
+  color: var(--color-correct);
+}
+
+.doneBadge {
+  position: absolute;
+  bottom: -3px;
+  right: -3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-correct);
+  color: white;
+  font-size: 10px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--color-bg);
+}

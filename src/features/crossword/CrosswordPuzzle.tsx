@@ -2,24 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import Layout from '../../components/Layout'
 import { usePersistedAnswers } from '../../hooks/usePersistedAnswers'
 import { listPuzzles, type CrosswordPuzzle as CrosswordPuzzleType } from './api'
+import { groupByCategory } from './grouping'
 import CrosswordBoard from './CrosswordBoard'
 import styles from './CrosswordPuzzle.module.css'
-
-// Puzzle titles that belong to the same category share a base name, e.g.
-// "동물과 자연" and "동물과 자연 2" both group under "동물과 자연".
-function categoryOf(title: string): string {
-  return title.replace(/\s+\d+$/, '')
-}
-
-function groupByCategory(puzzles: CrosswordPuzzleType[]): [string, CrosswordPuzzleType[]][] {
-  const groups = new Map<string, CrosswordPuzzleType[]>()
-  for (const p of puzzles) {
-    const category = categoryOf(p.title)
-    if (!groups.has(category)) groups.set(category, [])
-    groups.get(category)!.push(p)
-  }
-  return Array.from(groups.entries())
-}
 
 export default function CrosswordPuzzle() {
   const [puzzles, setPuzzles] = useState<CrosswordPuzzleType[] | null>(null)
@@ -66,21 +51,22 @@ export default function CrosswordPuzzle() {
                   <span className={[styles.chevron, isOpen ? styles.chevronOpen : ''].join(' ')}>▾</span>
                 </button>
                 {isOpen && (
-                  <div className={styles.subList}>
-                    {items.map((p, i) => (
-                      <button
-                        key={p.id}
-                        type="button"
-                        className={styles.subItem}
-                        onClick={() => setPuzzleId(p.id)}
-                      >
-                        <span className={styles.subNumber}>{i + 1}</span>
-                        <span className={styles.subTitle}>{i + 1}번 낱말퀴즈</span>
-                        {answers[p.id] !== undefined && (
-                          <span className={[styles.itemStatus, styles.statusDone].join(' ')}>✓</span>
-                        )}
-                      </button>
-                    ))}
+                  <div className={styles.numberGrid}>
+                    {items.map((p, i) => {
+                      const done = answers[p.id] !== undefined
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          className={[styles.numberButton, done ? styles.numberButtonDone : ''].join(' ')}
+                          onClick={() => setPuzzleId(p.id)}
+                          aria-label={`${i + 1}번 낱말퀴즈`}
+                        >
+                          {i + 1}
+                          {done && <span className={styles.doneBadge}>✓</span>}
+                        </button>
+                      )
+                    })}
                   </div>
                 )}
               </div>
