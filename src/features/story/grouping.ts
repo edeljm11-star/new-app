@@ -61,6 +61,27 @@ const FOLKTALE_IDS = new Set([
   'bluebird-of-happiness',
   'happy-prince-and-swallow',
   'wizard-of-oz-yellow-brick-road',
+
+  'shim-cheong-lotus-flower',
+  'toad-repays-favor-centipede',
+  'fox-and-crane-dinner-invite',
+  'wolf-and-seven-kids',
+  'frog-prince-broken-promise',
+  'lion-and-mouse-kindness',
+  'peter-pan-neverland-adventure',
+  'jungle-book-mowgli-friendship',
+  'boy-who-bought-tree-shade',
+  'fisherman-wife-three-wishes-greed',
+  'peter-and-the-wolf-courage',
+  'goblin-and-roasted-chestnut',
+  'wise-daughter-in-law-riddles',
+  'three-billy-goats-troll-bridge',
+  'little-red-hen-hard-work',
+  'stone-soup-village-sharing',
+  'rumpelstiltskin-name-guess',
+  'beauty-and-beast-kindness',
+  'puss-in-boots-clever-cat',
+  'snow-queen-gerda-friendship',
 ])
 
 // Stories don't carry a content-type field of their own -- the three flavors
@@ -133,6 +154,13 @@ const PROVERB_IDS = new Set([
   'smiling-face-no-spit',
   'thousand-mile-first-step',
   'young-puppy-fears-nothing',
+
+  'gymnastics-champion-misstep',
+  'rainy-season-hope-returns',
+  'field-trip-mishap-cascade',
+  'missing-glasses-on-head',
+  'classroom-gossip-overheard',
+  'bike-brake-check-habit',
 ])
 
 export function groupOf(story: Story): StoryGroupKey {
