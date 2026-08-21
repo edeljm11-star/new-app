@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   listConversations,
@@ -7,6 +7,7 @@ import {
   deleteConversation,
   type ConversationItem,
 } from '../../features/conversation/api'
+import { groupConversations, titleOf, type ConversationGroupKey } from '../../features/conversation/grouping'
 import styles from './admin.module.css'
 
 interface MessageDraft {
@@ -68,6 +69,18 @@ export default function ConversationAdmin() {
   const [editingId, setEditingId] = useState<string | 'new' | null>(null)
   const [draft, setDraft] = useState<Draft>(emptyDraft)
   const [saving, setSaving] = useState(false)
+  const [openGroups, setOpenGroups] = useState<Set<ConversationGroupKey>>(new Set())
+
+  const groups = useMemo(() => (items ? groupConversations(items) : []), [items])
+
+  function toggleGroup(key: ConversationGroupKey) {
+    setOpenGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
 
   function reload() {
     listConversations().then(setItems)
@@ -278,19 +291,41 @@ export default function ConversationAdmin() {
             <p className={styles.empty}>아직 대화가 없어요.</p>
           ) : (
             <div className={styles.list}>
-              {items.map((item) => (
-                <div key={item.id} className={styles.row}>
-                  <span className={styles.rowTitle}>{item.situation}</span>
-                  <div className={styles.rowActions}>
-                    <button type="button" className={styles.smallButton} onClick={() => startEdit(item)}>
-                      수정
+              {groups.map(({ def, items: groupItems }) => {
+                const isOpen = openGroups.has(def.key)
+                return (
+                  <div key={def.key}>
+                    <button
+                      type="button"
+                      className={styles.groupHeader}
+                      aria-expanded={isOpen}
+                      onClick={() => toggleGroup(def.key)}
+                    >
+                      <span className={styles.groupEmoji}>{def.emoji}</span>
+                      <span className={styles.groupLabel}>{def.label}</span>
+                      <span className={styles.groupCount}>{groupItems.length}개</span>
+                      <span className={[styles.groupChevron, isOpen ? styles.groupChevronOpen : ''].join(' ')}>▾</span>
                     </button>
-                    <button type="button" className={styles.dangerButton} onClick={() => handleDelete(item.id)}>
-                      삭제
-                    </button>
+                    {isOpen && (
+                      <div className={styles.groupBody}>
+                        {groupItems.map((item) => (
+                          <div key={item.id} className={styles.row}>
+                            <span className={styles.rowTitle}>{titleOf(item)}</span>
+                            <div className={styles.rowActions}>
+                              <button type="button" className={styles.smallButton} onClick={() => startEdit(item)}>
+                                수정
+                              </button>
+                              <button type="button" className={styles.dangerButton} onClick={() => handleDelete(item.id)}>
+                                삭제
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </>

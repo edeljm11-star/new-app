@@ -292,3 +292,48 @@
   display: flex;
   gap: 12px;
 }
+
+.groupHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--color-surface);
+  border: none;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-soft);
+  cursor: pointer;
+  font: inherit;
+  color: var(--color-text);
+  text-align: left;
+}
+
+.groupEmoji {
+  font-size: 20px;
+}
+
+.groupLabel {
+  font-weight: 800;
+  flex: 1;
+}
+
+.groupCount {
+  font-size: 13px;
+  color: var(--color-text-soft);
+}
+
+.groupChevron {
+  transition: transform 0.15s ease;
+}
+
+.groupChevronOpen {
+  transform: rotate(180deg);
+}
+
+.groupBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 0 0 14px;
+}
