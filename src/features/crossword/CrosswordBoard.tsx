@@ -232,8 +232,8 @@ export default function CrosswordBoard({ puzzle, onExit, onComplete }: Crossword
     setHintModes((prev) => ({ ...prev, [key]: NEXT_HINT_MODE[prev[key] ?? 'text'] }))
   }
 
-  const across = puzzle.words.filter((w) => w.direction === 'across')
-  const down = puzzle.words.filter((w) => w.direction === 'down')
+  const across = puzzle.words.filter((w) => w.direction === 'across').sort((a, b) => a.number - b.number)
+  const down = puzzle.words.filter((w) => w.direction === 'down').sort((a, b) => a.number - b.number)
 
   return (
     <div>
