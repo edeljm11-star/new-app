@@ -31,7 +31,7 @@ function App() {
           }
         />
         <Route
-          path="/situation"
+          path="/situation/:openId?"
           element={
             <RequireAuth>
               <SituationQuiz />
@@ -39,7 +39,7 @@ function App() {
           }
         />
         <Route
-          path="/story"
+          path="/story/:storyId?"
           element={
             <RequireAuth>
               <StoryQuiz />
@@ -47,7 +47,7 @@ function App() {
           }
         />
         <Route
-          path="/conversation"
+          path="/conversation/:openId?"
           element={
             <RequireAuth>
               <ConversationQuiz />
@@ -55,7 +55,7 @@ function App() {
           }
         />
         <Route
-          path="/crossword"
+          path="/crossword/:puzzleId?"
           element={
             <RequireAuth>
               <CrosswordPuzzle />

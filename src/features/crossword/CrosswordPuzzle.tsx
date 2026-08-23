@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import Layout from '../../components/Layout'
 import { usePersistedAnswers } from '../../hooks/usePersistedAnswers'
 import { listPuzzles, type CrosswordPuzzle as CrosswordPuzzleType } from './api'
@@ -8,7 +9,8 @@ import styles from './CrosswordPuzzle.module.css'
 
 export default function CrosswordPuzzle() {
   const [puzzles, setPuzzles] = useState<CrosswordPuzzleType[] | null>(null)
-  const [puzzleId, setPuzzleId] = useState<string | null>(null)
+  const { puzzleId } = useParams<{ puzzleId?: string }>()
+  const navigate = useNavigate()
   const [openCategory, setOpenCategory] = useState<string | null>(null)
   const { answers, recordAnswer } = usePersistedAnswers('crosswordAnswers')
 
@@ -20,14 +22,14 @@ export default function CrosswordPuzzle() {
   const groups = useMemo(() => (puzzles ? groupByCategory(puzzles) : []), [puzzles])
 
   return (
-    <Layout title="낱말퀴즈" accentColor="var(--color-purple)">
+    <Layout title="낱말퀴즈" accentColor="var(--color-purple)" backTo={puzzle ? '/crossword' : '/'}>
       {puzzles === null ? (
         <p className={styles.intro}>불러오는 중이에요...</p>
       ) : puzzle ? (
         <CrosswordBoard
           key={puzzle.id}
           puzzle={puzzle}
-          onExit={() => setPuzzleId(null)}
+          onExit={() => navigate('/crossword')}
           onComplete={() => recordAnswer(puzzle.id, 1)}
         />
       ) : puzzles.length === 0 ? (
@@ -59,7 +61,7 @@ export default function CrosswordPuzzle() {
                           key={p.id}
                           type="button"
                           className={[styles.numberButton, done ? styles.numberButtonDone : ''].join(' ')}
-                          onClick={() => setPuzzleId(p.id)}
+                          onClick={() => navigate(`/crossword/${p.id}`)}
                           aria-label={`${i + 1}번 낱말퀴즈`}
                         >
                           {i + 1}

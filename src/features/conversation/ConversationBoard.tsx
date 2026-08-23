@@ -22,7 +22,7 @@ export default function ConversationBoard({ conversation, onAnswer, onExit }: Co
   }
 
   return (
-    <Layout title="대화추론" accentColor="var(--color-primary)">
+    <Layout title="대화추론" accentColor="var(--color-primary)" backTo="/conversation">
       <p className={styles.situation}>{conversation.situation}</p>
 
       <div className={styles.chat}>

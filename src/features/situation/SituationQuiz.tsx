@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import Layout from '../../components/Layout'
 import { usePersistedAnswers } from '../../hooks/usePersistedAnswers'
 import { listSituations, type SituationItem } from './api'
@@ -9,7 +10,8 @@ import styles from './SituationQuiz.module.css'
 export default function SituationQuiz() {
   const [situations, setSituations] = useState<SituationItem[] | null>(null)
   const [openGroup, setOpenGroup] = useState<SituationGroupKey | null>(null)
-  const [openId, setOpenId] = useState<string | null>(null)
+  const { openId } = useParams<{ openId?: string }>()
+  const navigate = useNavigate()
   const { answers, recordAnswer } = usePersistedAnswers('situationAnswers')
 
   useEffect(() => {
@@ -42,7 +44,7 @@ export default function SituationQuiz() {
         situation={open}
         answer={answers[open.id]}
         onAnswer={(choiceIndex) => recordAnswer(open.id, choiceIndex)}
-        onExit={() => setOpenId(null)}
+        onExit={() => navigate('/situation')}
       />
     )
   }
@@ -78,7 +80,7 @@ export default function SituationQuiz() {
                       (isSingle ? answer === item.questions[0].answerIndex : answer === item.questions.length)
                     const isWrong = answer !== undefined && !isCorrect
                     return (
-                      <button key={item.id} type="button" className={styles.subItem} onClick={() => setOpenId(item.id)}>
+                      <button key={item.id} type="button" className={styles.subItem} onClick={() => navigate(`/situation/${item.id}`)}>
                         <span className={styles.subEmoji}>{item.scene.items[0]?.emoji ?? '🤔'}</span>
                         <span className={styles.subTitle}>{titleOf(item)}</span>
                         {isCorrect && <span className={[styles.itemStatus, styles.statusCorrect].join(' ')}>✓</span>}

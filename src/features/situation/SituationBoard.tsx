@@ -71,7 +71,7 @@ export default function SituationBoard({ situation, answer, onAnswer, onExit }: 
   // original one-shot layout untouched: no progress bar, no result screen.
   if (isSingle) {
     return (
-      <Layout title="상황추론" accentColor="var(--color-pink)">
+      <Layout title="상황추론" accentColor="var(--color-pink)" backTo="/situation">
         <div className={styles.sceneWrap}>
           <EmojiScene scene={situation.scene} />
         </div>
@@ -107,14 +107,14 @@ export default function SituationBoard({ situation, answer, onAnswer, onExit }: 
 
   if (finished) {
     return (
-      <Layout title="상황추론" accentColor="var(--color-pink)">
+      <Layout title="상황추론" accentColor="var(--color-pink)" backTo="/situation">
         <ResultScreen score={score} total={questions.length} onRetry={handleRetry} onExit={onExit} exitLabel="다른 문제 고르기" />
       </Layout>
     )
   }
 
   return (
-    <Layout title="상황추론" accentColor="var(--color-pink)">
+    <Layout title="상황추론" accentColor="var(--color-pink)" backTo="/situation">
       <div className={styles.sceneWrap}>
         <EmojiScene scene={situation.scene} />
       </div>
