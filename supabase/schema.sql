@@ -8,7 +8,11 @@ create table if not exists situations (
   choices jsonb not null,
   answer_index int not null,
   explanation text not null,
-  sort_order bigint not null default 0
+  sort_order bigint not null default 0,
+  -- Categorized 관찰/감정/사고/적용 questions (added after this table's
+  -- original seed below); question/choices/answer_index/explanation above
+  -- stay in sync with questions[0] for older code paths that still read them.
+  questions jsonb
 );
 
 create table if not exists stories (
