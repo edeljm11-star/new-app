@@ -21,7 +21,9 @@ export default function Layout({ title, accentColor, backTo = '/', children }: L
           ⬅
         </Link>
         <h1 className={styles.title}>{title}</h1>
-        <div className={styles.spacer} aria-hidden="true" />
+        <Link to="/" className={styles.homeButton} aria-label="홈으로 가기">
+          🏠
+        </Link>
       </header>
       <main className={styles.content}>{children}</main>
     </div>

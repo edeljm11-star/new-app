@@ -42,9 +42,22 @@
   font-weight: 800;
 }
 
-.spacer {
+.homeButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.25);
+  color: white;
+  font-size: 20px;
+  text-decoration: none;
   flex-shrink: 0;
+}
+
+.homeButton:active {
+  background: rgba(255, 255, 255, 0.4);
 }
 
 .content {
