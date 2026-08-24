@@ -48,7 +48,7 @@ export default function Home() {
   return (
     <div className={styles.page}>
       <header className={styles.hero}>
-        <div className={styles.logo}>🌱</div>
+        <div className={styles.logo}>🌷</div>
         <h1 className={styles.title}>자람토리</h1>
         <p className={styles.subtitle}>생각이 자라고, 마음이 자라는 놀이터</p>
       </header>

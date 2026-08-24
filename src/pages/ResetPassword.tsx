@@ -116,7 +116,7 @@ export default function ResetPassword() {
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <div className={styles.logo}>🌱</div>
+        <div className={styles.logo}>🌷</div>
         <h1 className={styles.title}>새 비밀번호 설정</h1>
       </header>
 

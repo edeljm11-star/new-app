@@ -26,7 +26,7 @@ export default function Login() {
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <div className={styles.logo}>🌱</div>
+        <div className={styles.logo}>🌷</div>
         <h1 className={styles.title}>로그인</h1>
         <p className={styles.subtitle}>자람토리에서 다시 만나요</p>
       </header>
