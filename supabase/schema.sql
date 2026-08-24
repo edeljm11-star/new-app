@@ -44,10 +44,24 @@ create table if not exists crossword_puzzles (
   sort_order bigint not null default 0
 );
 
+-- Per-user quiz progress (which item was answered, and with what value —
+-- a picked choice index, a score, or a plain "done" flag depending on the
+-- feature). Replaces the old localStorage-only tracking so progress
+-- follows the account across devices instead of being stuck on one browser.
+create table if not exists user_progress (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  feature text not null,
+  item_id text not null,
+  value int not null,
+  updated_at timestamptz not null default now(),
+  primary key (user_id, feature, item_id)
+);
+
 alter table situations enable row level security;
 alter table stories enable row level security;
 alter table conversations enable row level security;
 alter table crossword_puzzles enable row level security;
+alter table user_progress enable row level security;
 
 drop policy if exists "public read/write" on situations;
 drop policy if exists "public read/write" on stories;
@@ -92,6 +106,17 @@ create policy "public read" on crossword_puzzles for select using (true);
 create policy "admin write" on crossword_puzzles for insert with check (auth.jwt() ->> 'email' = 'edeljm11@gmail.com');
 create policy "admin update" on crossword_puzzles for update using (auth.jwt() ->> 'email' = 'edeljm11@gmail.com') with check (auth.jwt() ->> 'email' = 'edeljm11@gmail.com');
 create policy "admin delete" on crossword_puzzles for delete using (auth.jwt() ->> 'email' = 'edeljm11@gmail.com');
+
+-- Every signed-in user can read/write only their own progress rows —
+-- unlike the content tables above, there's no admin-only write here.
+drop policy if exists "own read" on user_progress;
+drop policy if exists "own insert" on user_progress;
+drop policy if exists "own update" on user_progress;
+drop policy if exists "own delete" on user_progress;
+create policy "own read" on user_progress for select using (auth.uid() = user_id);
+create policy "own insert" on user_progress for insert with check (auth.uid() = user_id);
+create policy "own update" on user_progress for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "own delete" on user_progress for delete using (auth.uid() = user_id);
 
 -- situations
 insert into situations (id, scene, question, choices, answer_index, explanation, sort_order) values ('fell-down', '{"bg":"var(--color-pink-soft)","items":[{"emoji":"🤕","top":"45%","left":"35%","size":72},{"emoji":"🧍","top":"60%","left":"75%","size":60},{"emoji":"😟","top":"28%","left":"75%","size":34}]}'::jsonb, '친구가 넘어져서 아파해요. 어떻게 하면 좋을까요?', '["다가가서 괜찮은지 물어봐요","못 본 척 지나가요","친구를 보고 웃어요","더 세게 밀어요"]'::jsonb, 0, '다친 친구를 도와주면 친구가 고마워할 거예요.', 0)
