@@ -9,6 +9,15 @@
 // it actually has access to and use that -- this can't go stale.
 const ROUNDS = 2
 const ROUND_DELAY_MS = 1500
+// A model that's overloaded sometimes hangs instead of returning an error
+// status, which used to block the whole request on whichever model got
+// tried first. Time each attempt out and move on to the next candidate
+// instead of waiting indefinitely.
+const REQUEST_TIMEOUT_MS = 15000
+// Bound worst-case latency (timeout x candidates x rounds) -- an account can
+// have many usable models, but only the first few "flash" ones are worth
+// trying before giving up and telling the admin to retry.
+const MAX_CANDIDATES = 5
 
 export class GeminiError extends Error {}
 
@@ -53,20 +62,27 @@ async function listModels(apiKey: string): Promise<string[]> {
 }
 
 async function callModel(model: string, apiKey: string, prompt: string, schema: object) {
-  return fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          responseMimeType: 'application/json',
-          responseSchema: schema,
-        },
-      }),
-    },
-  )
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+  try {
+    return await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            responseMimeType: 'application/json',
+            responseSchema: schema,
+          },
+        }),
+      },
+    )
+  } finally {
+    clearTimeout(timeout)
+  }
 }
 
 const RETRYABLE_STATUSES = new Set([404, 429, 503])
@@ -74,13 +90,14 @@ const RETRYABLE_STATUSES = new Set([404, 429, 503])
 export async function generateGeminiJSON<T>(apiKey: string, prompt: string, schema: object): Promise<T> {
   if (!apiKey.trim()) throw new GeminiError('먼저 API Key를 등록해주세요.')
 
-  const candidates = await listModels(apiKey)
+  const candidates = (await listModels(apiKey)).slice(0, MAX_CANDIDATES)
   if (candidates.length === 0) {
     throw new GeminiError('이 API Key로 사용할 수 있는 AI 모델을 찾지 못했어요. Google AI Studio에서 키가 활성화됐는지 확인해주세요.')
   }
 
   let lastStatus = 0
   let lastBody = ''
+  let sawTimeoutOrNetworkError = false
 
   for (let round = 0; round < ROUNDS; round++) {
     for (const model of candidates) {
@@ -88,7 +105,11 @@ export async function generateGeminiJSON<T>(apiKey: string, prompt: string, sche
       try {
         res = await callModel(model, apiKey, prompt, schema)
       } catch {
-        throw new GeminiError('AI 서버에 연결하지 못했어요. 인터넷 연결을 확인해주세요.')
+        // A model that's overloaded or unreachable is exactly the case this
+        // fallback exists for -- move on to the next candidate instead of
+        // giving up on the whole request.
+        sawTimeoutOrNetworkError = true
+        continue
       }
 
       if (res.ok) return parseGeminiResponse<T>(await res.json())
@@ -102,6 +123,13 @@ export async function generateGeminiJSON<T>(apiKey: string, prompt: string, sche
     if (round < ROUNDS - 1) await sleep(ROUND_DELAY_MS)
   }
 
+  if (lastStatus === 0) {
+    throw new GeminiError(
+      sawTimeoutOrNetworkError
+        ? 'AI 서버 응답이 너무 오래 걸리거나 연결에 실패했어요. 잠시 후 다시 시도해주세요.'
+        : 'AI 요청이 실패했어요. 다시 시도해주세요.',
+    )
+  }
   throw statusToError(lastStatus, lastBody)
 }
 
