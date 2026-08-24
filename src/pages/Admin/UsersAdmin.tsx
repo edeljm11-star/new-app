@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { listProfiles, type Profile } from '../../features/users/api'
-import ScrollToTopButton from '../../components/Admin/ScrollToTopButton'
 import styles from './admin.module.css'
 
 function formatDate(iso: string): string {
@@ -47,7 +46,6 @@ export default function UsersAdmin() {
           </div>
         </>
       )}
-      <ScrollToTopButton />
     </div>
   )
 }

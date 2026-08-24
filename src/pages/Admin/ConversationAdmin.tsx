@@ -9,7 +9,6 @@ import {
 } from '../../features/conversation/api'
 import { groupConversations, titleOf, GROUP_DEFS, type ConversationGroupKey } from '../../features/conversation/grouping'
 import ApiKeyModal from '../../components/Admin/ApiKeyModal'
-import ScrollToTopButton from '../../components/Admin/ScrollToTopButton'
 import { getGeminiApiKey } from '../../lib/adminSettings'
 import { generateGeminiJSON, GeminiError } from '../../lib/gemini'
 import styles from './admin.module.css'
@@ -540,7 +539,6 @@ export default function ConversationAdmin() {
           }}
         />
       )}
-      <ScrollToTopButton />
     </div>
   )
 }

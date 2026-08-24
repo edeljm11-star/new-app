@@ -17,10 +17,12 @@ import StoryAdmin from './pages/Admin/StoryAdmin'
 import ConversationAdmin from './pages/Admin/ConversationAdmin'
 import CrosswordAdmin from './pages/Admin/CrosswordAdmin'
 import UsersAdmin from './pages/Admin/UsersAdmin'
+import ScrollToTopButton from './components/ScrollToTopButton'
 
 function App() {
   return (
     <HashRouter>
+      <ScrollToTopButton />
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />

@@ -479,24 +479,3 @@
   font-weight: 900;
   font-size: 16px;
 }
-
-.scrollTopButton {
-  position: fixed;
-  right: 20px;
-  bottom: 20px;
-  width: 48px;
-  height: 48px;
-  border: none;
-  border-radius: 50%;
-  background: var(--color-primary);
-  color: white;
-  font-size: 22px;
-  font-weight: 900;
-  box-shadow: var(--shadow-pop);
-  cursor: pointer;
-  z-index: 20;
-}
-
-.scrollTopButton:active {
-  background: var(--color-primary-dark);
-}
