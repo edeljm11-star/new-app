@@ -209,17 +209,21 @@ export default function CrosswordAdmin() {
       }
 
       let best: ReturnType<typeof generateCrosswordLayout> | null = null
+      const attemptLog: string[] = []
       for (let i = 0; i < AI_MAX_ATTEMPTS; i++) {
         const result = await generateGeminiJSON<{ words: WordInput[] }>(key, buildPrompt(category, aiHint), AI_RESPONSE_SCHEMA)
         const candidates = result.words.filter((w) => w.answer && w.answer.trim().length >= 2)
         const connected = largestConnectedGroup(candidates)
         const layout = generateCrosswordLayout(connected.length >= AI_MIN_PLACED ? connected : candidates)
+        attemptLog.push(`생성 ${result.words.length}개 → 연결 ${connected.length}개 → 배치 ${layout.words.length}개`)
         if (!best || layout.words.length > best.words.length) best = layout
         if (best.words.length >= AI_GOOD_PLACED) break
       }
 
       if (!best || best.words.length < AI_MIN_PLACED) {
-        setAiError('낱말들이 서로 잘 연결되지 않아 낱말판을 만들지 못했어요. 다시 시도해주세요.')
+        setAiError(
+          `낱말들이 서로 잘 연결되지 않아 낱말판을 만들지 못했어요. 다시 시도해주세요. (${attemptLog.join(' / ')})`,
+        )
         return
       }
 
