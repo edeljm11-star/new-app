@@ -126,6 +126,7 @@ export default function CrosswordAdmin() {
   const [editingId, setEditingId] = useState<string | 'new' | null>(null)
   const [draft, setDraft] = useState<Draft>(emptyDraft)
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [openCategories, setOpenCategories] = useState<Set<string>>(new Set())
 
   const [showAiPanel, setShowAiPanel] = useState(false)
@@ -160,6 +161,7 @@ export default function CrosswordAdmin() {
 
   function startNew() {
     setDraft(emptyDraft)
+    setSaveError(null)
     setEditingId('new')
   }
 
@@ -227,6 +229,7 @@ export default function CrosswordAdmin() {
       })
       setShowAiPanel(false)
       setAiHint('')
+      setSaveError(null)
       setEditingId('new')
     } catch (err) {
       setAiError(err instanceof GeminiError ? err.message : 'AI 생성 중 문제가 생겼어요. 다시 시도해주세요.')
@@ -237,6 +240,7 @@ export default function CrosswordAdmin() {
 
   function startEdit(item: CrosswordPuzzle) {
     setDraft(draftFromPuzzle(item))
+    setSaveError(null)
     setEditingId(item.id)
   }
 
@@ -259,6 +263,7 @@ export default function CrosswordAdmin() {
 
   async function handleSave() {
     setSaving(true)
+    setSaveError(null)
     try {
       const value = draftToPuzzle(draft)
       if (editingId === 'new') {
@@ -268,6 +273,8 @@ export default function CrosswordAdmin() {
       }
       setEditingId(null)
       reload()
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : '저장에 실패했어요. 다시 시도해주세요.')
     } finally {
       setSaving(false)
     }
@@ -435,6 +442,7 @@ export default function CrosswordAdmin() {
             </button>
           </div>
 
+          {saveError && <p className={styles.errorText}>{saveError}</p>}
           <div className={styles.formActions}>
             <button type="button" className={styles.saveButton} disabled={saving} onClick={handleSave}>
               {saving ? '저장 중...' : '저장'}

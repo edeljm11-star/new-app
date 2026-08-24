@@ -196,6 +196,7 @@ export default function SituationAdmin() {
   const [editingId, setEditingId] = useState<string | 'new' | null>(null)
   const [draft, setDraft] = useState<Draft>(emptyDraft)
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [openGroups, setOpenGroups] = useState<Set<SituationGroupKey>>(new Set())
 
   const [showAiPanel, setShowAiPanel] = useState(false)
@@ -226,6 +227,7 @@ export default function SituationAdmin() {
 
   function startNew() {
     setDraft(emptyDraft)
+    setSaveError(null)
     setEditingId('new')
   }
 
@@ -276,6 +278,7 @@ export default function SituationAdmin() {
       })
       setShowAiPanel(false)
       setAiHint('')
+      setSaveError(null)
       setEditingId('new')
     } catch (err) {
       setAiError(err instanceof GeminiError ? err.message : 'AI 생성 중 문제가 생겼어요. 다시 시도해주세요.')
@@ -286,6 +289,7 @@ export default function SituationAdmin() {
 
   function startEdit(item: SituationItem) {
     setDraft(draftFromItem(item))
+    setSaveError(null)
     setEditingId(item.id)
   }
 
@@ -295,6 +299,7 @@ export default function SituationAdmin() {
 
   async function handleSave() {
     setSaving(true)
+    setSaveError(null)
     try {
       const value = draftToItem(draft)
       if (editingId === 'new') {
@@ -304,6 +309,8 @@ export default function SituationAdmin() {
       }
       setEditingId(null)
       reload()
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : '저장에 실패했어요. 다시 시도해주세요.')
     } finally {
       setSaving(false)
     }
@@ -475,6 +482,7 @@ export default function SituationAdmin() {
             </button>
           </div>
 
+          {saveError && <p className={styles.errorText}>{saveError}</p>}
           <div className={styles.formActions}>
             <button type="button" className={styles.saveButton} disabled={saving} onClick={handleSave}>
               {saving ? '저장 중...' : '저장'}

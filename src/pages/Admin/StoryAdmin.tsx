@@ -230,6 +230,7 @@ export default function StoryAdmin() {
   const [editingId, setEditingId] = useState<string | 'new' | null>(null)
   const [draft, setDraft] = useState<Draft>(emptyDraft)
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [openGroups, setOpenGroups] = useState<Set<StoryGroupKey>>(new Set())
 
   const [showAiPanel, setShowAiPanel] = useState(false)
@@ -260,6 +261,7 @@ export default function StoryAdmin() {
 
   function startNew() {
     setDraft(emptyDraft)
+    setSaveError(null)
     setEditingId('new')
   }
 
@@ -319,6 +321,7 @@ export default function StoryAdmin() {
 
   function startEdit(item: Story) {
     setDraft(draftFromStory(item))
+    setSaveError(null)
     setEditingId(item.id)
   }
 
@@ -328,6 +331,7 @@ export default function StoryAdmin() {
 
   async function handleSave() {
     setSaving(true)
+    setSaveError(null)
     try {
       const value = draftToStory(draft)
       if (editingId === 'new') {
@@ -337,6 +341,8 @@ export default function StoryAdmin() {
       }
       setEditingId(null)
       reload()
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : '저장에 실패했어요. 다시 시도해주세요.')
     } finally {
       setSaving(false)
     }
@@ -611,6 +617,7 @@ export default function StoryAdmin() {
             </button>
           </div>
 
+          {saveError && <p className={styles.errorText}>{saveError}</p>}
           <div className={styles.formActions}>
             <button type="button" className={styles.saveButton} disabled={saving} onClick={handleSave}>
               {saving ? '저장 중...' : '저장'}
