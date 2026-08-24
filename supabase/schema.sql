@@ -25,6 +25,14 @@ create table if not exists situations (
 -- before this column was added.
 alter table situations add column if not exists group_key text;
 
+-- Short list-display title (e.g. "체육시간 다친 발목에 얼음찜질 도와주기"), matching
+-- the style of the hand-picked titles the original 450 seeded items use. Those
+-- seeded items keep their titles in a hardcoded id->title map in grouping.ts
+-- instead, so this stays null for them; anything created via the admin screen
+-- (manually or by AI) sets it directly, replacing the fallback of showing the
+-- full question sentence.
+alter table situations add column if not exists title text;
+
 create table if not exists stories (
   id text primary key,
   emoji text not null,

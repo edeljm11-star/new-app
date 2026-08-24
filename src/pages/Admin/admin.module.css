@@ -50,7 +50,9 @@
 }
 
 .addButton {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
   margin-bottom: 16px;
   padding: 12px 20px;
   border: none;
@@ -348,11 +350,12 @@
 .aiButton {
   display: inline-flex;
   align-items: center;
+  line-height: 1;
   gap: 6px;
   padding: 12px 20px;
   border: none;
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, var(--color-purple), var(--color-primary));
+  background: linear-gradient(135deg, var(--color-yellow), #9bd66b, var(--color-primary));
   color: white;
   font-weight: 700;
   font-size: 15px;

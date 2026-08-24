@@ -23,6 +23,9 @@ export interface SituationItem {
   // Unset for the original 450 seeded items -- those are grouped by a
   // hardcoded id->group lookup in grouping.ts instead.
   groupKey?: string
+  // Short list-display title. Unset for the original 450 seeded items --
+  // those get theirs from a hardcoded id->title lookup in grouping.ts instead.
+  title?: string
 }
 
 interface SituationRow {
@@ -37,6 +40,7 @@ interface SituationRow {
   questions: SituationQuestion[] | null
   sort_order: number
   group_key: string | null
+  title: string | null
 }
 
 function fromRow(row: SituationRow): SituationItem {
@@ -55,6 +59,7 @@ function fromRow(row: SituationRow): SituationItem {
             },
           ],
     groupKey: row.group_key ?? undefined,
+    title: row.title ?? undefined,
   }
 }
 
@@ -81,6 +86,7 @@ export async function createSituation(item: Omit<SituationItem, 'id'>): Promise<
     explanation: first.explanation,
     questions: item.questions,
     group_key: item.groupKey ?? null,
+    title: item.title ?? null,
     sort_order: Date.now(),
   })
   if (error) throw error

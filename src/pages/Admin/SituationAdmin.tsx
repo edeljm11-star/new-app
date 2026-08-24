@@ -37,6 +37,9 @@ interface Draft {
   // '' means "let the id-based legacy lookup decide" (only ever true for
   // the original 450 seeded items).
   groupKey: '' | SituationGroupKey
+  // Short list-display title, e.g. "체육시간 다친 발목에 얼음찜질 도와주기". Empty
+  // falls back to the full question sentence.
+  title: string
 }
 
 const CATEGORY_OPTIONS: { value: '' | SituationCategory; label: string }[] = [
@@ -54,6 +57,7 @@ const emptyDraft: Draft = {
   sceneBg: 'var(--color-pink-soft)',
   items: [{ emoji: '', top: '50%', left: '50%', size: '60' }],
   groupKey: '',
+  title: '',
 }
 
 interface AiSceneItem {
@@ -72,6 +76,7 @@ interface AiQuestion {
 }
 
 interface AiResult {
+  title: string
   sceneItems: AiSceneItem[]
   questions: AiQuestion[]
 }
@@ -79,6 +84,7 @@ interface AiResult {
 const AI_RESPONSE_SCHEMA = {
   type: 'OBJECT',
   properties: {
+    title: { type: 'STRING' },
     sceneItems: {
       type: 'ARRAY',
       items: {
@@ -107,7 +113,7 @@ const AI_RESPONSE_SCHEMA = {
       },
     },
   },
-  required: ['sceneItems', 'questions'],
+  required: ['title', 'sceneItems', 'questions'],
 }
 
 function buildPrompt(categoryLabel: string, hint: string): string {
@@ -126,6 +132,7 @@ ${hint.trim() ? `- 상황 힌트: ${hint.trim()}` : '- 구체적인 상황은 �
 (😕 표정과 ❓가 함께 있어서 "당황해서 무언가를 찾고 있다"는 것이 그림만으로 명확히 보입니다.)
 
 다음 형식의 JSON으로만 답하세요:
+- title: 이 문제가 관리자 목록에서 보일 짧은 제목. 질문 문장이 아니라 상황을 요약하는 명사형 제목이어야 합니다. "~하기", "~할 때", "~때 돕기"처럼 끝나는 10~20자 내외 표현을 쓰세요. (예: "체육시간 다친 발목에 얼음찜질 도와주기", "발표 중 머릿속이 하얘질 때", "친구 과제 베끼고 싶은 유혹")
 - sceneItems: 이모지 2~4개. 각 항목은 emoji(이모지 하나), top("20%"~"70%" 사이 문자열), left("20%"~"80%" 사이 문자열), size(24~70 사이 숫자)를 가집니다. 서로 겹치지 않도록 위치를 다양하게 배치하세요. 등장인물의 표정을 나타내는 이모지를 반드시 포함해서, 관찰 질문의 정답이 그림만으로 드러나게 하세요.
 - questions: 정확히 4개, 순서대로 category가 "observe","emotion","thought","apply" 여야 합니다.
   - observe(관찰): 그림 속 상황을 보면 무엇을 알 수 있는지 묻는 질문. 정답은 장면의 이모지만으로 명확히 판단 가능해야 합니다.
@@ -153,6 +160,7 @@ function draftFromItem(item: SituationItem): Draft {
       size: String(i.size ?? 48),
     })),
     groupKey: (item.groupKey as SituationGroupKey) ?? '',
+    title: item.title ?? '',
   }
 }
 
@@ -179,6 +187,7 @@ function draftToItem(draft: Draft): Omit<SituationItem, 'id'> {
         .map((i) => ({ emoji: i.emoji.trim(), top: i.top.trim(), left: i.left.trim(), size: Number(i.size) || 48 })),
     },
     groupKey: draft.groupKey || undefined,
+    title: draft.title.trim() || undefined,
   }
 }
 
@@ -250,6 +259,7 @@ export default function SituationAdmin() {
       setDraft({
         sceneBg: emptyDraft.sceneBg,
         groupKey: aiCategory,
+        title: result.title,
         items: result.sceneItems.map((it) => ({
           emoji: it.emoji,
           top: it.top,
@@ -348,6 +358,15 @@ export default function SituationAdmin() {
         <div className={styles.form}>
           <div className={styles.subsection}>
             <p className={styles.subsectionTitle}>목록 분류</p>
+            <div className={styles.field}>
+              <label>제목 (관리자 목록에 표시돼요. 예: 체육시간 다친 발목에 얼음찜질 도와주기)</label>
+              <input
+                type="text"
+                value={draft.title}
+                onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
+                placeholder="비워두면 질문 문장이 그대로 표시돼요"
+              />
+            </div>
             <div className={styles.field}>
               <label>이 문제가 상황추론 목록에서 보일 카테고리</label>
               <select

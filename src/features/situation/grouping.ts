@@ -458,7 +458,7 @@ const TITLES: Record<string, string> = {
 }
 
 export function titleOf(item: SituationItem): string {
-  return TITLES[item.id] ?? item.questions[0].question
+  return item.title || TITLES[item.id] || item.questions[0].question
 }
 
 export type SituationGroupKey =
