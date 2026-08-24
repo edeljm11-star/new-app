@@ -85,6 +85,7 @@ function draftToPuzzle(draft: Draft): Omit<CrosswordPuzzle, 'id'> {
   }
 }
 
+const NEW_CATEGORY = '__new__'
 const AI_WORD_COUNT = 8
 const AI_MIN_PLACED = 5
 const AI_MAX_ATTEMPTS = 3
@@ -457,18 +458,25 @@ export default function CrosswordAdmin() {
           <p className={styles.aiPanelTitle}>✨ AI로 낱말퀴즈 만들기</p>
           <div className={styles.field}>
             <label>카테고리</label>
-            <input
-              type="text"
-              list="crossword-categories"
-              value={aiCategory}
-              onChange={(e) => setAiCategory(e.target.value)}
-              placeholder="예: 동물과 자연 (기존 카테고리를 입력하면 이어서 추가돼요)"
-            />
-            <datalist id="crossword-categories">
+            <select
+              value={existingCategories.includes(aiCategory) ? aiCategory : NEW_CATEGORY}
+              onChange={(e) => setAiCategory(e.target.value === NEW_CATEGORY ? '' : e.target.value)}
+            >
               {existingCategories.map((c) => (
-                <option key={c} value={c} />
+                <option key={c} value={c}>
+                  {c}
+                </option>
               ))}
-            </datalist>
+              <option value={NEW_CATEGORY}>+ 새 카테고리 직접 입력</option>
+            </select>
+            {!existingCategories.includes(aiCategory) && (
+              <input
+                type="text"
+                value={aiCategory}
+                onChange={(e) => setAiCategory(e.target.value)}
+                placeholder="새 카테고리 이름을 입력하세요 (예: 우주와 별)"
+              />
+            )}
           </div>
           <div className={styles.field}>
             <label>힌트 (선택 — 비워두면 AI가 알아서 만들어요)</label>
