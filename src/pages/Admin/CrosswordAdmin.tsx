@@ -8,7 +8,7 @@ import {
   type CrosswordPuzzle,
 } from '../../features/crossword/api'
 import { groupByCategory, categoryOf } from '../../features/crossword/grouping'
-import { generateCrosswordLayout, type WordInput } from '../../features/crossword/generateLayout'
+import { generateCrosswordLayout, largestConnectedGroup, type WordInput } from '../../features/crossword/generateLayout'
 import ApiKeyModal from '../../components/Admin/ApiKeyModal'
 import { getGeminiApiKey } from '../../lib/adminSettings'
 import { generateGeminiJSON, GeminiError } from '../../lib/gemini'
@@ -86,15 +86,23 @@ function draftToPuzzle(draft: Draft): Omit<CrosswordPuzzle, 'id'> {
 }
 
 const NEW_CATEGORY = '__new__'
-const AI_WORD_COUNT = 8
-const AI_MIN_PLACED = 5
-const AI_MAX_ATTEMPTS = 3
+const AI_WORD_COUNT = 14
+// Stop retrying once an attempt places at least this many -- a good result.
+const AI_GOOD_PLACED = 6
+// Accept the best attempt seen even if it never reached AI_GOOD_PLACED, as
+// long as it clears this floor -- a smaller-but-valid puzzle beats making
+// the admin retry from scratch. Below this, there's not enough of a puzzle
+// to be worth saving.
+const AI_MIN_PLACED = 3
+const AI_MAX_ATTEMPTS = 4
 
 const AI_RESPONSE_SCHEMA = {
   type: 'OBJECT',
   properties: {
     words: {
       type: 'ARRAY',
+      minItems: AI_WORD_COUNT,
+      maxItems: AI_WORD_COUNT,
       items: {
         type: 'OBJECT',
         properties: {
@@ -117,7 +125,10 @@ ${hint.trim() ? `- 힌트: ${hint.trim()}` : ''}
 
 조건:
 - 각 낱말은 2~4글자의 한글 낱말이어야 해요 (예: "나무", "고양이", "고슴도치"). 외래어나 영어 표기, 조사가 붙은 형태는 피해주세요.
-- 낱말퀴즈는 낱말들이 서로 글자를 공유하며 십자 모양으로 겹쳐져야 완성돼요. 그러니 ${AI_WORD_COUNT}개 중 여러 쌍이 같은 글자를 공유하도록 골라주세요 (예: "고양이"와 "고구마"는 첫 글자 "고"를 공유해요). 다른 낱말과 겹치는 글자가 전혀 없는 낱말은 피해주세요.
+- 가장 중요한 조건입니다: 십자말풀이는 낱말들이 "글자 하나"를 정확히 공유해야만 격자에서 겹쳐질 수 있어요. 그냥 같은 주제라는 것만으로는 부족하고, 실제로 같은 글자(음절)를 포함해야 해요. 이렇게 만들어보세요:
+  1. 먼저 "${category}" 주제에서 여러 낱말에 공통으로 들어갈 만한 글자(음절)를 서로 다른 것으로 최소 5~6개 정하세요 (예: 동물 주제라면 "고"/"사"/"나"/"무"/"개" 등). 한 글자에만 의존하면 안 돼요 -- 한 글자를 공유하는 낱말 쌍은 격자에서 딱 한 번만 교차할 수 있어서, 같은 글자를 공유하는 낱말이 3개 이상이면 그중 하나만 실제로 격자에 들어갈 수 있어요.
+  2. 그 글자들이 낱말의 첫 글자, 가운데 글자, 마지막 글자 등 다양한 위치에 오도록 ${AI_WORD_COUNT}개의 낱말을 고르세요. 예를 들어 "물"이라는 글자를 고르면 "물고기"(첫 글자), "선물"(마지막 글자), "물통"(첫 글자)처럼 여러 낱말에 나눠 넣으세요.
+  3. 이상적으로는 어떤 두 낱말도 같은 글자를 3번 이상 반복해서 공유하지 않게 하고, 대신 서로 다른 낱말 쌍마다 서로 다른 글자로 겹치게 해서 여러 개의 독립적인 교차점을 만드세요. 전체 낱말의 최소 3분의 2 이상이 다른 낱말과 최소 한 글자를 공유해야 하고, 어떤 낱말과도 글자가 겹치지 않는 낱말은 목록에서 빼주세요.
 - 각 낱말마다 hintText(그 낱말을 설명하는 한 문장 힌트, 초등학생이 이해하기 쉬운 말투)와 hintEmoji(그 낱말을 나타내는 이모지 하나)를 함께 주세요.
 - 다음 형식의 JSON으로만 답하세요: 정확히 ${AI_WORD_COUNT}개의 항목을 가진 words 배열. 각 항목은 answer, hintText, hintEmoji로 구성하세요.`
 }
@@ -201,9 +212,10 @@ export default function CrosswordAdmin() {
       for (let i = 0; i < AI_MAX_ATTEMPTS; i++) {
         const result = await generateGeminiJSON<{ words: WordInput[] }>(key, buildPrompt(category, aiHint), AI_RESPONSE_SCHEMA)
         const candidates = result.words.filter((w) => w.answer && w.answer.trim().length >= 2)
-        const layout = generateCrosswordLayout(candidates)
+        const connected = largestConnectedGroup(candidates)
+        const layout = generateCrosswordLayout(connected.length >= AI_MIN_PLACED ? connected : candidates)
         if (!best || layout.words.length > best.words.length) best = layout
-        if (best.words.length >= AI_MIN_PLACED) break
+        if (best.words.length >= AI_GOOD_PLACED) break
       }
 
       if (!best || best.words.length < AI_MIN_PLACED) {

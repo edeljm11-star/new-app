@@ -23,6 +23,51 @@ export interface GeneratedLayout {
   unplaced: WordInput[]
 }
 
+// A crossword can only connect words that share an actual syllable -- being
+// about the same topic isn't enough, and an AI word list often has several
+// words that don't share a syllable with anything else in the batch. Rather
+// than hope the raw list happens to be well-connected, keep only its
+// largest cluster of mutually-reachable words (via shared syllables,
+// transitively) before attempting placement.
+export function largestConnectedGroup(inputs: WordInput[]): WordInput[] {
+  const parent = inputs.map((_, i) => i)
+  function find(x: number): number {
+    while (parent[x] !== x) {
+      parent[x] = parent[parent[x]]
+      x = parent[x]
+    }
+    return x
+  }
+  function union(a: number, b: number) {
+    const ra = find(a)
+    const rb = find(b)
+    if (ra !== rb) parent[ra] = rb
+  }
+  function sharesSyllable(a: string, b: string): boolean {
+    for (const ch of a) if (b.includes(ch)) return true
+    return false
+  }
+
+  for (let i = 0; i < inputs.length; i++) {
+    for (let j = i + 1; j < inputs.length; j++) {
+      if (sharesSyllable(inputs[i].answer, inputs[j].answer)) union(i, j)
+    }
+  }
+
+  const groups = new Map<number, WordInput[]>()
+  for (let i = 0; i < inputs.length; i++) {
+    const root = find(i)
+    if (!groups.has(root)) groups.set(root, [])
+    groups.get(root)!.push(inputs[i])
+  }
+
+  let best: WordInput[] = []
+  for (const group of groups.values()) {
+    if (group.length > best.length) best = group
+  }
+  return best
+}
+
 type Direction = 'across' | 'down'
 
 interface Candidate {
