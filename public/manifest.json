@@ -1,0 +1,15 @@
+{
+  "name": "자람토리",
+  "short_name": "자람토리",
+  "description": "유아, 아동의 인지력과 사회성을 키우는 학습 놀이터",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fff8ec",
+  "theme_color": "#45b57e",
+  "lang": "ko",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "240x240", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "640x640", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
