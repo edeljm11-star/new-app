@@ -4,11 +4,19 @@
 // proxy through, and the key never leaves the admin-only screens.
 //
 // Which model names are actually reachable varies by account/API version,
-// so a 404 (model not found) falls through to the next candidate instead
-// of failing outright -- any one of these being valid is enough.
+// so a 404 (model not found) falls through to the next candidate. 503
+// (model overloaded) and 429 (rate limited) are also transient -- another
+// candidate model, or the same one a moment later, often succeeds -- so
+// those retry too instead of failing on the first busy response.
 const MODEL_CANDIDATES = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.0-flash', 'gemini-1.5-flash']
+const ROUNDS = 2
+const ROUND_DELAY_MS = 1500
 
 export class GeminiError extends Error {}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
 
 async function callModel(model: string, apiKey: string, prompt: string, schema: object) {
   return fetch(
@@ -27,44 +35,60 @@ async function callModel(model: string, apiKey: string, prompt: string, schema: 
   )
 }
 
+const RETRYABLE_STATUSES = new Set([404, 429, 503])
+
 export async function generateGeminiJSON<T>(apiKey: string, prompt: string, schema: object): Promise<T> {
   if (!apiKey.trim()) throw new GeminiError('먼저 API Key를 등록해주세요.')
 
-  let res: Response | null = null
-  let lastErrorBody = ''
-  for (const model of MODEL_CANDIDATES) {
-    try {
-      res = await callModel(model, apiKey, prompt, schema)
-    } catch {
-      throw new GeminiError('AI 서버에 연결하지 못했어요. 인터넷 연결을 확인해주세요.')
+  let lastStatus = 0
+  let lastBody = ''
+
+  for (let round = 0; round < ROUNDS; round++) {
+    for (const model of MODEL_CANDIDATES) {
+      let res: Response
+      try {
+        res = await callModel(model, apiKey, prompt, schema)
+      } catch {
+        throw new GeminiError('AI 서버에 연결하지 못했어요. 인터넷 연결을 확인해주세요.')
+      }
+
+      if (res.ok) return parseGeminiResponse<T>(await res.json())
+
+      lastStatus = res.status
+      if (!RETRYABLE_STATUSES.has(res.status)) {
+        lastBody = await res.text().catch(() => '')
+        throw statusToError(res.status, lastBody)
+      }
+      lastBody = await res.text().catch(() => '')
     }
-    if (res.ok) break
-    if (res.status !== 404) break // real error (bad key, quota, etc.) -- don't mask it by retrying
-    lastErrorBody = await res.text().catch(() => '')
+    if (round < ROUNDS - 1) await sleep(ROUND_DELAY_MS)
   }
 
-  if (!res) throw new GeminiError('AI 서버에 연결하지 못했어요.')
+  throw statusToError(lastStatus, lastBody)
+}
 
-  if (!res.ok) {
-    if (res.status === 400 || res.status === 403) {
-      throw new GeminiError('API Key가 올바르지 않은 것 같아요. API Key 설정을 다시 확인해주세요.')
-    }
-    if (res.status === 429) {
-      throw new GeminiError('요청이 너무 많아요. 잠시 후 다시 시도해주세요.')
-    }
-    if (res.status === 404) {
-      throw new GeminiError('이 API Key로 사용할 수 있는 AI 모델을 찾지 못했어요. Google AI Studio에서 키가 활성화됐는지 확인해주세요.')
-    }
-    const body = (await res.text().catch(() => '')) || lastErrorBody
-    throw new GeminiError(`AI 요청이 실패했어요. (오류 코드: ${res.status}) ${body.slice(0, 150)}`)
+function statusToError(status: number, body: string): GeminiError {
+  if (status === 400 || status === 403) {
+    return new GeminiError('API Key가 올바르지 않은 것 같아요. API Key 설정을 다시 확인해주세요.')
   }
+  if (status === 429) {
+    return new GeminiError('요청이 너무 많아요. 잠시 후 다시 시도해주세요.')
+  }
+  if (status === 503) {
+    return new GeminiError('지금 AI 서버가 많이 붐벼요. 잠시 후 다시 시도해주세요.')
+  }
+  if (status === 404) {
+    return new GeminiError('이 API Key로 사용할 수 있는 AI 모델을 찾지 못했어요. Google AI Studio에서 키가 활성화됐는지 확인해주세요.')
+  }
+  return new GeminiError(`AI 요청이 실패했어요. (오류 코드: ${status}) ${body.slice(0, 150)}`)
+}
 
-  const data = await res.json()
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text
+function parseGeminiResponse<T>(data: unknown): T {
+  const text = (data as { candidates?: { content?: { parts?: { text?: string }[] } }[] })?.candidates?.[0]?.content
+    ?.parts?.[0]?.text
   if (typeof text !== 'string') {
     throw new GeminiError('AI가 답을 만들지 못했어요. 다시 시도해주세요.')
   }
-
   try {
     return JSON.parse(text) as T
   } catch {
