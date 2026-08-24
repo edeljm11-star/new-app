@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Layout from '../../components/Layout'
+import LoadError from '../../components/LoadError'
 import { usePersistedAnswers } from '../../hooks/usePersistedAnswers'
 import { listConversations, type ConversationItem } from './api'
 import { groupConversations, titleOf, type ConversationGroupKey } from './grouping'
@@ -9,16 +10,33 @@ import styles from './ConversationQuiz.module.css'
 
 export default function ConversationQuiz() {
   const [conversations, setConversations] = useState<ConversationItem[] | null>(null)
+  const [loadError, setLoadError] = useState(false)
   const [openGroup, setOpenGroup] = useState<ConversationGroupKey | null>(null)
   const { openId } = useParams<{ openId?: string }>()
   const navigate = useNavigate()
   const { answers, recordAnswer } = usePersistedAnswers('conversationAnswers')
 
+  function load() {
+    setLoadError(false)
+    setConversations(null)
+    listConversations()
+      .then(setConversations)
+      .catch(() => setLoadError(true))
+  }
+
   useEffect(() => {
-    listConversations().then(setConversations)
+    load()
   }, [])
 
   const groups = useMemo(() => (conversations ? groupConversations(conversations) : []), [conversations])
+
+  if (loadError) {
+    return (
+      <Layout title="대화추론" accentColor="var(--color-primary)">
+        <LoadError onRetry={load} />
+      </Layout>
+    )
+  }
 
   if (conversations === null) {
     return (

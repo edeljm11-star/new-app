@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Layout from '../../components/Layout'
+import LoadError from '../../components/LoadError'
 import { usePersistedAnswers } from '../../hooks/usePersistedAnswers'
 import { listStories, type Story } from './api'
 import { groupStories, type StoryGroupKey } from './grouping'
@@ -9,13 +10,22 @@ import styles from './StoryQuiz.module.css'
 
 export default function StoryQuiz() {
   const [stories, setStories] = useState<Story[] | null>(null)
+  const [loadError, setLoadError] = useState(false)
   const [openGroup, setOpenGroup] = useState<StoryGroupKey | null>(null)
   const { storyId } = useParams<{ storyId?: string }>()
   const navigate = useNavigate()
   const { answers, recordAnswer } = usePersistedAnswers('storyAnswers')
 
+  function load() {
+    setLoadError(false)
+    setStories(null)
+    listStories()
+      .then(setStories)
+      .catch(() => setLoadError(true))
+  }
+
   useEffect(() => {
-    listStories().then(setStories)
+    load()
   }, [])
 
   const groups = useMemo(() => (stories ? groupStories(stories) : []), [stories])
@@ -23,7 +33,9 @@ export default function StoryQuiz() {
 
   return (
     <Layout title="내용이해" accentColor="var(--color-blue)" backTo={story ? '/story' : '/'}>
-      {stories === null ? (
+      {loadError ? (
+        <LoadError onRetry={load} />
+      ) : stories === null ? (
         <p className={styles.intro}>불러오는 중이에요...</p>
       ) : story ? (
         <StoryPlayer

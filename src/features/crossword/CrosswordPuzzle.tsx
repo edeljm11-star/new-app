@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Layout from '../../components/Layout'
+import LoadError from '../../components/LoadError'
 import { usePersistedAnswers } from '../../hooks/usePersistedAnswers'
 import { listPuzzles, type CrosswordPuzzle as CrosswordPuzzleType } from './api'
 import { groupByCategory } from './grouping'
@@ -9,13 +10,22 @@ import styles from './CrosswordPuzzle.module.css'
 
 export default function CrosswordPuzzle() {
   const [puzzles, setPuzzles] = useState<CrosswordPuzzleType[] | null>(null)
+  const [loadError, setLoadError] = useState(false)
   const { puzzleId } = useParams<{ puzzleId?: string }>()
   const navigate = useNavigate()
   const [openCategory, setOpenCategory] = useState<string | null>(null)
   const { answers, recordAnswer } = usePersistedAnswers('crosswordAnswers')
 
+  function load() {
+    setLoadError(false)
+    setPuzzles(null)
+    listPuzzles()
+      .then(setPuzzles)
+      .catch(() => setLoadError(true))
+  }
+
   useEffect(() => {
-    listPuzzles().then(setPuzzles)
+    load()
   }, [])
 
   const puzzle = puzzles?.find((p) => p.id === puzzleId) ?? null
@@ -23,7 +33,9 @@ export default function CrosswordPuzzle() {
 
   return (
     <Layout title="낱말퀴즈" accentColor="var(--color-purple)" backTo={puzzle ? '/crossword' : '/'}>
-      {puzzles === null ? (
+      {loadError ? (
+        <LoadError onRetry={load} />
+      ) : puzzles === null ? (
         <p className={styles.intro}>불러오는 중이에요...</p>
       ) : puzzle ? (
         <CrosswordBoard

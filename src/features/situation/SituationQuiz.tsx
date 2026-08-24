@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Layout from '../../components/Layout'
+import LoadError from '../../components/LoadError'
 import { usePersistedAnswers } from '../../hooks/usePersistedAnswers'
 import { listSituations, type SituationItem } from './api'
 import { groupSituations, titleOf, type SituationGroupKey } from './grouping'
@@ -9,16 +10,33 @@ import styles from './SituationQuiz.module.css'
 
 export default function SituationQuiz() {
   const [situations, setSituations] = useState<SituationItem[] | null>(null)
+  const [loadError, setLoadError] = useState(false)
   const [openGroup, setOpenGroup] = useState<SituationGroupKey | null>(null)
   const { openId } = useParams<{ openId?: string }>()
   const navigate = useNavigate()
   const { answers, recordAnswer } = usePersistedAnswers('situationAnswers')
 
+  function load() {
+    setLoadError(false)
+    setSituations(null)
+    listSituations()
+      .then(setSituations)
+      .catch(() => setLoadError(true))
+  }
+
   useEffect(() => {
-    listSituations().then(setSituations)
+    load()
   }, [])
 
   const groups = useMemo(() => (situations ? groupSituations(situations) : []), [situations])
+
+  if (loadError) {
+    return (
+      <Layout title="상황추론" accentColor="var(--color-pink)">
+        <LoadError onRetry={load} />
+      </Layout>
+    )
+  }
 
   if (situations === null) {
     return (
