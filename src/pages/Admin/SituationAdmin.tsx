@@ -352,6 +352,11 @@ export default function SituationAdmin() {
           ⬅
         </Link>
         <h1 className={styles.title}>상황추론 관리</h1>
+        <Link to="/" className={styles.homeLink} aria-label="홈으로 가기">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+            <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+          </svg>
+        </Link>
       </header>
 
       {editingId ? (

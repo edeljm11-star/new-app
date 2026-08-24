@@ -104,6 +104,7 @@ export async function updateSituation(id: string, item: Omit<SituationItem, 'id'
       explanation: first.explanation,
       questions: item.questions,
       group_key: item.groupKey ?? null,
+      title: item.title ?? null,
     })
     .eq('id', id)
   if (error) throw error

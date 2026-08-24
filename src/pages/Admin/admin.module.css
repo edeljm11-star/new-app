@@ -23,6 +23,22 @@
   font-weight: 900;
 }
 
+.homeLink {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  flex-shrink: 0;
+}
+
+.homeLink:active {
+  background: rgba(0, 0, 0, 0.06);
+}
+
 .grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -52,9 +68,11 @@
 .addButton {
   display: inline-flex;
   align-items: center;
-  line-height: 1;
+  justify-content: center;
+  box-sizing: border-box;
+  height: 42px;
   margin-bottom: 16px;
-  padding: 12px 20px;
+  padding: 0 20px;
   border: none;
   border-radius: var(--radius-md);
   background: var(--color-primary);
@@ -350,9 +368,11 @@
 .aiButton {
   display: inline-flex;
   align-items: center;
-  line-height: 1;
+  justify-content: center;
+  box-sizing: border-box;
+  height: 42px;
   gap: 6px;
-  padding: 12px 20px;
+  padding: 0 20px;
   border: none;
   border-radius: var(--radius-md);
   background: linear-gradient(135deg, var(--color-yellow), #9bd66b, var(--color-primary));
