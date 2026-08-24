@@ -123,6 +123,8 @@ const AI_RESPONSE_SCHEMA = {
     },
     vocabQuiz: {
       type: 'ARRAY',
+      minItems: 4,
+      maxItems: 5,
       items: {
         type: 'OBJECT',
         properties: {
@@ -157,7 +159,13 @@ ${hint.trim() ? `- 힌트: ${hint.trim()}` : '- 구체적인 내용은 자유롭
 - vocabulary: 이야기에 나온 낱말 중 3~4개를 골라 word(낱말)와 meaning(쉬운 뜻풀이)로 제공하세요.
 - trueFalse: 이야기 내용과 일치하는지 판단하는 문장 3~4개. statement(문장)와 answer(내용과 일치하면 true, 아니면 false)로 구성하고, true와 false를 골고루 섞어주세요.
 - mainTheme: 이야기의 중심 생각이나 교훈을 묻는 질문 하나. question, choices(4개, 정답 1개+그럴듯한 오답 3개), answerIndex(0부터 시작하는 정답 순번)로 구성하세요.
-- vocabQuiz: 이야기 속 낱말을 활용한 어휘 문제 2~3개. 각 항목은 type("vocab"=낱말 뜻, "proverb"=속담·사자성어, "synonym"=비슷한말, "antonym"=반대말, "spelling"=맞춤법 중 하나), word(문제에서 다룰 낱말이나 짧은 구), choices(4개, 정답 1개+오답 3개), answerIndex로 구성하세요. 분류가 "속담 이야기"라면 그중 하나는 반드시 type을 "proverb"로 하고 이 이야기에 쓰인 속담을 다루세요.
+- vocabQuiz: 이야기 속 낱말을 활용한 어휘 문제. type이 서로 다른 문제를 아래처럼 반드시 모두 포함해서 만들어주세요 (분류가 "속담 이야기"가 아니면 4개, "속담 이야기"면 5개):
+  - type "vocab" 1개: 이야기 속 낱말의 뜻을 묻는 문제
+  - type "synonym" 1개: 이야기 속 낱말의 비슷한말을 묻는 문제
+  - type "antonym" 1개: 이야기 속 낱말의 반대말을 묻는 문제
+  - type "spelling" 1개: 이야기 속 낱말과 발음은 비슷하지만 맞춤법이 틀린 표기를 보기에 섞어, 올바른 맞춤법을 고르는 문제
+  - (분류가 "속담 이야기"일 때만) type "proverb" 1개: 이 이야기에 쓰인 속담의 뜻이나 형태를 묻는 문제
+  각 항목은 type, word(문제에서 다룰 낱말이나 짧은 구), choices(4개, 정답 1개+그럴듯한 오답 3개), answerIndex(0부터 시작하는 정답 순번)로 구성하세요.
 - 모든 텍스트는 한국어로, 초등학생이 이해하기 쉬운 말투로 작성하세요.`
 }
 
