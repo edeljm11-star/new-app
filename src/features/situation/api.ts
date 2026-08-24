@@ -18,6 +18,11 @@ export interface SituationItem {
   id: string
   scene: EmojiSceneSpec
   questions: SituationQuestion[]
+  // Which list group (SituationGroupKey, kept as a plain string here to
+  // avoid a circular import with grouping.ts) this item belongs under.
+  // Unset for the original 450 seeded items -- those are grouped by a
+  // hardcoded id->group lookup in grouping.ts instead.
+  groupKey?: string
 }
 
 interface SituationRow {
@@ -31,6 +36,7 @@ interface SituationRow {
   explanation: string
   questions: SituationQuestion[] | null
   sort_order: number
+  group_key: string | null
 }
 
 function fromRow(row: SituationRow): SituationItem {
@@ -48,6 +54,7 @@ function fromRow(row: SituationRow): SituationItem {
               explanation: row.explanation,
             },
           ],
+    groupKey: row.group_key ?? undefined,
   }
 }
 
@@ -73,6 +80,7 @@ export async function createSituation(item: Omit<SituationItem, 'id'>): Promise<
     answer_index: first.answerIndex,
     explanation: first.explanation,
     questions: item.questions,
+    group_key: item.groupKey ?? null,
     sort_order: Date.now(),
   })
   if (error) throw error
@@ -89,6 +97,7 @@ export async function updateSituation(id: string, item: Omit<SituationItem, 'id'
       answer_index: first.answerIndex,
       explanation: first.explanation,
       questions: item.questions,
+      group_key: item.groupKey ?? null,
     })
     .eq('id', id)
   if (error) throw error

@@ -33,6 +33,10 @@ interface Draft {
   questions: QuestionDraft[]
   sceneBg: string
   items: SceneItemDraft[]
+  // Which list group (친구 돕기/감정 이해·위로/...) this item shows under.
+  // '' means "let the id-based legacy lookup decide" (only ever true for
+  // the original 450 seeded items).
+  groupKey: '' | SituationGroupKey
 }
 
 const CATEGORY_OPTIONS: { value: '' | SituationCategory; label: string }[] = [
@@ -49,6 +53,7 @@ const emptyDraft: Draft = {
   questions: [emptyQuestion],
   sceneBg: 'var(--color-pink-soft)',
   items: [{ emoji: '', top: '50%', left: '50%', size: '60' }],
+  groupKey: '',
 }
 
 interface AiSceneItem {
@@ -147,6 +152,7 @@ function draftFromItem(item: SituationItem): Draft {
       left: i.left,
       size: String(i.size ?? 48),
     })),
+    groupKey: (item.groupKey as SituationGroupKey) ?? '',
   }
 }
 
@@ -172,6 +178,7 @@ function draftToItem(draft: Draft): Omit<SituationItem, 'id'> {
         .filter((i) => i.emoji.trim())
         .map((i) => ({ emoji: i.emoji.trim(), top: i.top.trim(), left: i.left.trim(), size: Number(i.size) || 48 })),
     },
+    groupKey: draft.groupKey || undefined,
   }
 }
 
@@ -242,6 +249,7 @@ export default function SituationAdmin() {
 
       setDraft({
         sceneBg: emptyDraft.sceneBg,
+        groupKey: aiCategory,
         items: result.sceneItems.map((it) => ({
           emoji: it.emoji,
           top: it.top,
@@ -338,6 +346,24 @@ export default function SituationAdmin() {
 
       {editingId ? (
         <div className={styles.form}>
+          <div className={styles.subsection}>
+            <p className={styles.subsectionTitle}>목록 분류</p>
+            <div className={styles.field}>
+              <label>이 문제가 상황추론 목록에서 보일 카테고리</label>
+              <select
+                value={draft.groupKey}
+                onChange={(e) => setDraft((d) => ({ ...d, groupKey: e.target.value as Draft['groupKey'] }))}
+              >
+                <option value="">(자동 — 알 수 없으면 '기타'에 들어가요)</option>
+                {GROUP_DEFS.map((g) => (
+                  <option key={g.key} value={g.key}>
+                    {g.emoji} {g.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           <div className={styles.subsection}>
             <p className={styles.subsectionTitle}>문제 목록 (같은 그림으로 여러 문제를 풀어요)</p>
             {draft.questions.map((q, i) => (

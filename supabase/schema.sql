@@ -12,8 +12,18 @@ create table if not exists situations (
   -- Categorized 관찰/감정/사고/적용 questions (added after this table's
   -- original seed below); question/choices/answer_index/explanation above
   -- stay in sync with questions[0] for older code paths that still read them.
-  questions jsonb
+  questions jsonb,
+  -- Which 친구 돕기/감정 이해·위로/... bucket (SituationGroupKey) this item
+  -- shows under in the list. The original 450 seeded items are grouped by a
+  -- hardcoded id->group map in grouping.ts instead (they predate this
+  -- column), so this is null for them; anything created via the admin
+  -- screen (manually or by AI) sets it directly.
+  group_key text
 );
+
+-- Idempotent for the table above already existing in a live project from
+-- before this column was added.
+alter table situations add column if not exists group_key text;
 
 create table if not exists stories (
   id text primary key,

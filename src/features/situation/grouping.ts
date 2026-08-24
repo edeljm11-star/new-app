@@ -944,6 +944,9 @@ const GROUP_OF: Record<string, SituationGroupKey> = {
 }
 
 export function groupOf(item: SituationItem): SituationGroupKey {
+  if (item.groupKey && GROUP_DEFS.some((g) => g.key === item.groupKey)) {
+    return item.groupKey as SituationGroupKey
+  }
   return GROUP_OF[item.id] ?? 'etc'
 }
 
