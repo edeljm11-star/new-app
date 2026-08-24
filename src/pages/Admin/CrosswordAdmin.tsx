@@ -7,7 +7,11 @@ import {
   deletePuzzle,
   type CrosswordPuzzle,
 } from '../../features/crossword/api'
-import { groupByCategory } from '../../features/crossword/grouping'
+import { groupByCategory, categoryOf } from '../../features/crossword/grouping'
+import { generateCrosswordLayout, type WordInput } from '../../features/crossword/generateLayout'
+import ApiKeyModal from '../../components/Admin/ApiKeyModal'
+import { getGeminiApiKey } from '../../lib/adminSettings'
+import { generateGeminiJSON, GeminiError } from '../../lib/gemini'
 import styles from './admin.module.css'
 
 interface WordDraft {
@@ -81,6 +85,42 @@ function draftToPuzzle(draft: Draft): Omit<CrosswordPuzzle, 'id'> {
   }
 }
 
+const AI_WORD_COUNT = 8
+const AI_MIN_PLACED = 5
+const AI_MAX_ATTEMPTS = 3
+
+const AI_RESPONSE_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    words: {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          answer: { type: 'STRING' },
+          hintText: { type: 'STRING' },
+          hintEmoji: { type: 'STRING' },
+        },
+        required: ['answer', 'hintText', 'hintEmoji'],
+      },
+    },
+  },
+  required: ['words'],
+}
+
+function buildPrompt(category: string, hint: string): string {
+  return `당신은 초등학생을 위한 "낱말퀴즈"(십자말풀이) 콘텐츠를 만드는 도우미입니다.
+
+"${category}" 주제에 어울리는 한국어 낱말 ${AI_WORD_COUNT}개를 만들어주세요.
+${hint.trim() ? `- 힌트: ${hint.trim()}` : ''}
+
+조건:
+- 각 낱말은 2~4글자의 한글 낱말이어야 해요 (예: "나무", "고양이", "고슴도치"). 외래어나 영어 표기, 조사가 붙은 형태는 피해주세요.
+- 낱말퀴즈는 낱말들이 서로 글자를 공유하며 십자 모양으로 겹쳐져야 완성돼요. 그러니 ${AI_WORD_COUNT}개 중 여러 쌍이 같은 글자를 공유하도록 골라주세요 (예: "고양이"와 "고구마"는 첫 글자 "고"를 공유해요). 다른 낱말과 겹치는 글자가 전혀 없는 낱말은 피해주세요.
+- 각 낱말마다 hintText(그 낱말을 설명하는 한 문장 힌트, 초등학생이 이해하기 쉬운 말투)와 hintEmoji(그 낱말을 나타내는 이모지 하나)를 함께 주세요.
+- 다음 형식의 JSON으로만 답하세요: 정확히 ${AI_WORD_COUNT}개의 항목을 가진 words 배열. 각 항목은 answer, hintText, hintEmoji로 구성하세요.`
+}
+
 export default function CrosswordAdmin() {
   const [items, setItems] = useState<CrosswordPuzzle[] | null>(null)
   const [editingId, setEditingId] = useState<string | 'new' | null>(null)
@@ -88,7 +128,18 @@ export default function CrosswordAdmin() {
   const [saving, setSaving] = useState(false)
   const [openCategories, setOpenCategories] = useState<Set<string>>(new Set())
 
+  const [showAiPanel, setShowAiPanel] = useState(false)
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false)
+  const [aiCategory, setAiCategory] = useState('')
+  const [aiHint, setAiHint] = useState('')
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiError, setAiError] = useState<string | null>(null)
+
   const groups = useMemo(() => (items ? groupByCategory(items) : []), [items])
+  const existingCategories = useMemo(
+    () => Array.from(new Set((items ?? []).map((p) => categoryOf(p.title)))),
+    [items],
+  )
 
   function toggleCategory(category: string) {
     setOpenCategories((prev) => {
@@ -110,6 +161,78 @@ export default function CrosswordAdmin() {
   function startNew() {
     setDraft(emptyDraft)
     setEditingId('new')
+  }
+
+  async function openAiPanel() {
+    const key = await getGeminiApiKey()
+    if (!key) {
+      setShowApiKeyModal(true)
+      return
+    }
+    setAiError(null)
+    if (!aiCategory) setAiCategory(existingCategories[0] ?? '')
+    setShowAiPanel(true)
+  }
+
+  function cancelAiPanel() {
+    setShowAiPanel(false)
+    setAiError(null)
+  }
+
+  async function handleGenerate() {
+    const category = aiCategory.trim()
+    if (!category) {
+      setAiError('카테고리를 입력해주세요.')
+      return
+    }
+    setAiLoading(true)
+    setAiError(null)
+    try {
+      const key = await getGeminiApiKey()
+      if (!key) {
+        setShowApiKeyModal(true)
+        return
+      }
+
+      let best: ReturnType<typeof generateCrosswordLayout> | null = null
+      for (let i = 0; i < AI_MAX_ATTEMPTS; i++) {
+        const result = await generateGeminiJSON<{ words: WordInput[] }>(key, buildPrompt(category, aiHint), AI_RESPONSE_SCHEMA)
+        const candidates = result.words.filter((w) => w.answer && w.answer.trim().length >= 2)
+        const layout = generateCrosswordLayout(candidates)
+        if (!best || layout.words.length > best.words.length) best = layout
+        if (best.words.length >= AI_MIN_PLACED) break
+      }
+
+      if (!best || best.words.length < AI_MIN_PLACED) {
+        setAiError('낱말들이 서로 잘 연결되지 않아 낱말판을 만들지 못했어요. 다시 시도해주세요.')
+        return
+      }
+
+      const nextNumber = items?.filter((p) => categoryOf(p.title) === category).length ?? 0
+      setDraft({
+        title: `${category} ${nextNumber + 1}`,
+        rows: String(best.grid.length),
+        cols: String(best.grid[0]?.length ?? 0),
+        grid: best.grid.map((row) => row.map((c) => c ?? '')),
+        words: best.words.map((w) => ({
+          number: String(w.number),
+          direction: w.direction,
+          row: String(w.row),
+          col: String(w.col),
+          length: String(w.length),
+          answer: w.answer,
+          hintText: w.hintText,
+          hintEmoji: w.hintEmoji,
+        })),
+      })
+      setShowAiPanel(false)
+      setAiHint('')
+      setEditingId('new')
+    } catch (err) {
+      setAiError(err instanceof GeminiError ? err.message : 'AI 생성 중 문제가 생겼어요. 다시 시도해주세요.')
+    } finally {
+      setAiLoading(false)
+    }
   }
 
   function startEdit(item: CrosswordPuzzle) {
@@ -321,11 +444,55 @@ export default function CrosswordAdmin() {
             </button>
           </div>
         </div>
+      ) : showAiPanel ? (
+        <div className={styles.aiPanel}>
+          <p className={styles.aiPanelTitle}>✨ AI로 낱말퀴즈 만들기</p>
+          <div className={styles.field}>
+            <label>카테고리</label>
+            <input
+              type="text"
+              list="crossword-categories"
+              value={aiCategory}
+              onChange={(e) => setAiCategory(e.target.value)}
+              placeholder="예: 동물과 자연 (기존 카테고리를 입력하면 이어서 추가돼요)"
+            />
+            <datalist id="crossword-categories">
+              {existingCategories.map((c) => (
+                <option key={c} value={c} />
+              ))}
+            </datalist>
+          </div>
+          <div className={styles.field}>
+            <label>힌트 (선택 — 비워두면 AI가 알아서 만들어요)</label>
+            <textarea
+              value={aiHint}
+              onChange={(e) => setAiHint(e.target.value)}
+              placeholder="예: 바다 생물 위주로 만들어줘"
+            />
+          </div>
+          <p className={styles.hint}>
+            AI가 만든 낱말들을 자동으로 서로 겹치게 배치해요. 겹치지 않는 낱말은 낱말판에서 빠질 수 있어요.
+          </p>
+          {aiError && <p className={styles.errorText}>{aiError}</p>}
+          <div className={styles.formActions}>
+            <button type="button" className={styles.aiButton} disabled={aiLoading} onClick={handleGenerate}>
+              {aiLoading ? '생성 중...' : '✨ 생성하기'}
+            </button>
+            <button type="button" className={styles.cancelButton} onClick={cancelAiPanel} disabled={aiLoading}>
+              취소
+            </button>
+          </div>
+        </div>
       ) : (
         <>
-          <button type="button" className={styles.addButton} onClick={startNew}>
-            + 새 낱말퀴즈 만들기
-          </button>
+          <div className={styles.actionRow}>
+            <button type="button" className={styles.addButton} onClick={startNew}>
+              + 새 낱말퀴즈 만들기
+            </button>
+            <button type="button" className={styles.aiButton} onClick={openAiPanel}>
+              ✨ AI로 만들기
+            </button>
+          </div>
 
           {items === null ? (
             <p className={styles.empty}>불러오는 중이에요...</p>
@@ -371,6 +538,17 @@ export default function CrosswordAdmin() {
             </div>
           )}
         </>
+      )}
+
+      {showApiKeyModal && (
+        <ApiKeyModal
+          onClose={() => setShowApiKeyModal(false)}
+          onSaved={() => {
+            setShowApiKeyModal(false)
+            setAiError(null)
+            setShowAiPanel(true)
+          }}
+        />
       )}
     </div>
   )
