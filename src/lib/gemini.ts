@@ -19,6 +19,23 @@ const REQUEST_TIMEOUT_MS = 15000
 // trying before giving up and telling the admin to retry.
 const MAX_CANDIDATES = 5
 
+// Try these, in this order, before falling back to whatever else the
+// account has access to. Kept as a *preference* layered on top of the
+// dynamic models.list discovery below, not a replacement for it -- if
+// Google renames or retires one of these ids, generation still works off
+// whatever the account actually reports instead of hard-failing again.
+// "-pro-" models are noticeably heavier/slower than "-flash-" ones, so pro
+// is ordered last: it's a quality fallback, not a first attempt, since
+// trying the slowest model first would undercut the point of having a
+// fallback chain (getting a fast response even when one model is busy).
+const PREFERRED_MODEL_ORDER = [
+  'gemini-flash-lite-latest',
+  'gemini-flash-latest',
+  'gemini-3-flash-preview',
+  'gemini-3.1-flash-lite',
+  'gemini-pro-latest',
+]
+
 export class GeminiError extends Error {}
 
 function sleep(ms: number) {
@@ -54,11 +71,15 @@ async function listModels(apiKey: string): Promise<string[]> {
     .filter((m) => m.supportedGenerationMethods?.includes('generateContent'))
     .map((m) => m.name.replace(/^models\//, ''))
 
-  // Prefer the small/fast "flash" models -- cheaper and faster, and what the
-  // free tier is meant for -- before falling back to whatever else works.
-  const flash = usable.filter((n) => n.includes('flash') && !n.includes('image') && !n.includes('tts'))
-  const rest = usable.filter((n) => !flash.includes(n))
-  return [...flash, ...rest]
+  // Rank by PREFERRED_MODEL_ORDER first; anything not on that list still
+  // gets tried, ordered fast ("flash") models before everything else.
+  function rank(name: string): number {
+    const preferredIndex = PREFERRED_MODEL_ORDER.indexOf(name)
+    if (preferredIndex !== -1) return preferredIndex
+    const isFlash = name.includes('flash') && !name.includes('image') && !name.includes('tts')
+    return PREFERRED_MODEL_ORDER.length + (isFlash ? 0 : 1)
+  }
+  return [...usable].sort((a, b) => rank(a) - rank(b))
 }
 
 async function callModel(model: string, apiKey: string, prompt: string, schema: object) {
