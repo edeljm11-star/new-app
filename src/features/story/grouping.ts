@@ -164,6 +164,9 @@ const PROVERB_IDS = new Set([
 ])
 
 export function groupOf(story: Story): StoryGroupKey {
+  if (story.groupKey && GROUP_DEFS.some((g) => g.key === story.groupKey)) {
+    return story.groupKey as StoryGroupKey
+  }
   if (FOLKTALE_IDS.has(story.id)) return 'folktale'
   if (PROVERB_IDS.has(story.id)) return 'proverb'
   return 'life'

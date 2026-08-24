@@ -42,8 +42,16 @@ create table if not exists stories (
   true_false jsonb not null,
   main_theme jsonb not null,
   vocab_quiz jsonb not null,
-  sort_order bigint not null default 0
+  sort_order bigint not null default 0,
+  -- Which 생활 이야기/속담 이야기/동화 이야기 (StoryGroupKey) bucket this item
+  -- shows under in the list. The original seeded stories are grouped by a
+  -- hardcoded id set in grouping.ts instead (they predate this column), so
+  -- this is null for them; anything created via the admin screen (manually
+  -- or by AI) sets it directly.
+  group_key text
 );
+
+alter table stories add column if not exists group_key text;
 
 create table if not exists conversations (
   id text primary key,
@@ -51,8 +59,17 @@ create table if not exists conversations (
   messages jsonb not null,
   choices jsonb not null,
   answer_index int not null,
-  sort_order bigint not null default 0
+  sort_order bigint not null default 0,
+  -- Same group_key pattern as stories/situations above.
+  group_key text,
+  -- Short list-display title, matching the style of the hand-picked titles
+  -- the original seeded items use (kept in grouping.ts for those instead).
+  -- Falls back to the situation sentence when unset.
+  title text
 );
+
+alter table conversations add column if not exists group_key text;
+alter table conversations add column if not exists title text;
 
 create table if not exists crossword_puzzles (
   id text primary key,

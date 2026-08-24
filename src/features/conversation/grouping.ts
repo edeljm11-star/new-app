@@ -561,7 +561,7 @@ const TITLES: Record<string, string> = {
 }
 
 export function titleOf(item: ConversationItem): string {
-  return TITLES[item.id] ?? item.situation
+  return item.title || TITLES[item.id] || item.situation
 }
 
 export type ConversationGroupKey =
@@ -669,6 +669,9 @@ const ID_PREFIX_GROUPS: ConversationGroupKey[] = [
 ]
 
 export function groupOf(item: ConversationItem): ConversationGroupKey {
+  if (item.groupKey && GROUP_DEFS.some((g) => g.key === item.groupKey)) {
+    return item.groupKey as ConversationGroupKey
+  }
   if (item.id in GROUP_OF) return GROUP_OF[item.id]
   const prefix = item.id.split('-')[0] as ConversationGroupKey
   if (ID_PREFIX_GROUPS.includes(prefix)) return prefix

@@ -32,6 +32,11 @@ export interface Story {
   trueFalse: TrueFalseItem[]
   mainTheme: MainThemeQuiz
   vocabQuiz: VocabQuizItem[]
+  // Which list group (StoryGroupKey, kept as a plain string here to avoid a
+  // circular import with grouping.ts) this item belongs under. Unset for
+  // the original seeded stories -- those are grouped by a hardcoded id set
+  // in grouping.ts instead.
+  groupKey?: string
 }
 
 interface StoryRow {
@@ -44,6 +49,7 @@ interface StoryRow {
   main_theme: MainThemeQuiz
   vocab_quiz: VocabQuizItem[]
   sort_order: number
+  group_key: string | null
 }
 
 function fromRow(row: StoryRow): Story {
@@ -56,6 +62,7 @@ function fromRow(row: StoryRow): Story {
     trueFalse: row.true_false,
     mainTheme: row.main_theme,
     vocabQuiz: row.vocab_quiz,
+    groupKey: row.group_key ?? undefined,
   }
 }
 
@@ -81,6 +88,7 @@ export async function createStory(item: Omit<Story, 'id'>): Promise<void> {
     true_false: item.trueFalse,
     main_theme: item.mainTheme,
     vocab_quiz: item.vocabQuiz,
+    group_key: item.groupKey ?? null,
     sort_order: Date.now(),
   })
   if (error) throw error
@@ -97,6 +105,7 @@ export async function updateStory(id: string, item: Omit<Story, 'id'>): Promise<
       true_false: item.trueFalse,
       main_theme: item.mainTheme,
       vocab_quiz: item.vocabQuiz,
+      group_key: item.groupKey ?? null,
     })
     .eq('id', id)
   if (error) throw error

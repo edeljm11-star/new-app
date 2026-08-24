@@ -7,7 +7,10 @@ import {
   deleteConversation,
   type ConversationItem,
 } from '../../features/conversation/api'
-import { groupConversations, titleOf, type ConversationGroupKey } from '../../features/conversation/grouping'
+import { groupConversations, titleOf, GROUP_DEFS, type ConversationGroupKey } from '../../features/conversation/grouping'
+import ApiKeyModal from '../../components/Admin/ApiKeyModal'
+import { getGeminiApiKey } from '../../lib/adminSettings'
+import { generateGeminiJSON, GeminiError } from '../../lib/gemini'
 import styles from './admin.module.css'
 
 interface MessageDraft {
@@ -26,6 +29,12 @@ interface Draft {
   messages: MessageDraft[]
   choices: ChoiceDraft[]
   answerLine: string
+  // Which list group (친구와의 대화/가족과의 대화/...) this item shows under. ''
+  // means "let the id-based legacy lookup decide" (only ever true for the
+  // original seeded items).
+  groupKey: '' | ConversationGroupKey
+  // Short list-display title. Empty falls back to the situation sentence.
+  title: string
 }
 
 const emptyDraft: Draft = {
@@ -39,6 +48,63 @@ const emptyDraft: Draft = {
     { label: '', isEmoji: false },
   ],
   answerLine: '1',
+  groupKey: '',
+  title: '',
+}
+
+interface AiMessage {
+  speaker: 'A' | 'B'
+  text: string
+  blank: boolean
+}
+
+interface AiResult {
+  title: string
+  situation: string
+  messages: AiMessage[]
+  choices: string[]
+  answerIndex: number
+}
+
+const AI_RESPONSE_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    title: { type: 'STRING' },
+    situation: { type: 'STRING' },
+    messages: {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          speaker: { type: 'STRING', enum: ['A', 'B'] },
+          text: { type: 'STRING' },
+          blank: { type: 'BOOLEAN' },
+        },
+        required: ['speaker', 'text', 'blank'],
+      },
+    },
+    choices: { type: 'ARRAY', items: { type: 'STRING' } },
+    answerIndex: { type: 'INTEGER' },
+  },
+  required: ['title', 'situation', 'messages', 'choices', 'answerIndex'],
+}
+
+function buildPrompt(categoryLabel: string, hint: string): string {
+  return `당신은 초등학생을 위한 "대화추론" 학습 콘텐츠를 만드는 도우미입니다.
+
+다음 조건에 맞는 새로운 대화 문제 하나를 만들어주세요:
+- 분류: ${categoryLabel}
+${hint.trim() ? `- 힌트: ${hint.trim()}` : '- 구체적인 상황은 자유롭게 만들어주세요.'}
+
+이 앱의 대화추론 문제는 A와 B 두 사람의 짧은 대화이며, 그중 한 마디가 빈칸으로 가려져 있고 아이는 보기 중에서 빈칸에 들어갈 가장 알맞은 말을 골라야 합니다.
+
+다음 형식의 JSON으로만 답하세요:
+- title: 목록에 표시될 짧은 제목 (예: "약속 시간 조율하기"). 질문 문장이 아니라 "~하기"로 끝나는 8~16자 내외 표현.
+- situation: 이 대화가 어떤 상황인지 한 문장으로 설명 (예: "친구와 만날 시간을 정하고 있어요.")
+- messages: A와 B가 번갈아 말하는 대사 3~5개. 각 항목은 speaker("A" 또는 "B"), text(대사, 단 blank가 true인 항목은 빈 문자열 ""), blank(이 대사가 빈칸으로 가려질 대사면 true, 아니면 false)로 구성하세요. 빈칸(blank:true)은 정확히 하나만 있어야 하고, 마지막 대사이거나 대화 흐름상 자연스러운 위치에 두세요.
+- choices: 빈칸에 들어갈 보기 3~4개. 정답 1개와, 상황에 안 맞거나 무례하거나 어색한 오답들로 구성하세요.
+- answerIndex: choices 중 정답의 순번 (0부터 시작)
+- 모든 텍스트는 한국어로, 초등학생이 이해하기 쉬운 말투로 작성하세요.`
 }
 
 function draftFromItem(item: ConversationItem): Draft {
@@ -47,6 +113,8 @@ function draftFromItem(item: ConversationItem): Draft {
     messages: item.messages.map((m) => ({ speaker: m.speaker, text: m.text ?? '', blank: !!m.blank })),
     choices: item.choices.map((c) => ({ label: c.label, isEmoji: !!c.isEmoji })),
     answerLine: String(item.answerIndex + 1),
+    groupKey: (item.groupKey as ConversationGroupKey) ?? '',
+    title: item.title ?? '',
   }
 }
 
@@ -61,6 +129,8 @@ function draftToItem(draft: Draft): Omit<ConversationItem, 'id'> {
     ),
     choices,
     answerIndex: Math.min(Math.max(Number(draft.answerLine) - 1, 0), choices.length - 1),
+    groupKey: draft.groupKey || undefined,
+    title: draft.title.trim() || undefined,
   }
 }
 
@@ -70,6 +140,13 @@ export default function ConversationAdmin() {
   const [draft, setDraft] = useState<Draft>(emptyDraft)
   const [saving, setSaving] = useState(false)
   const [openGroups, setOpenGroups] = useState<Set<ConversationGroupKey>>(new Set())
+
+  const [showAiPanel, setShowAiPanel] = useState(false)
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false)
+  const [aiCategory, setAiCategory] = useState<ConversationGroupKey>(GROUP_DEFS[0].key)
+  const [aiHint, setAiHint] = useState('')
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiError, setAiError] = useState<string | null>(null)
 
   const groups = useMemo(() => (items ? groupConversations(items) : []), [items])
 
@@ -93,6 +170,51 @@ export default function ConversationAdmin() {
   function startNew() {
     setDraft(emptyDraft)
     setEditingId('new')
+  }
+
+  async function openAiPanel() {
+    const key = await getGeminiApiKey()
+    if (!key) {
+      setShowApiKeyModal(true)
+      return
+    }
+    setAiError(null)
+    setShowAiPanel(true)
+  }
+
+  function cancelAiPanel() {
+    setShowAiPanel(false)
+    setAiError(null)
+  }
+
+  async function handleGenerate() {
+    setAiLoading(true)
+    setAiError(null)
+    try {
+      const key = await getGeminiApiKey()
+      if (!key) {
+        setShowApiKeyModal(true)
+        return
+      }
+      const categoryLabel = GROUP_DEFS.find((g) => g.key === aiCategory)?.label ?? aiCategory
+      const result = await generateGeminiJSON<AiResult>(key, buildPrompt(categoryLabel, aiHint), AI_RESPONSE_SCHEMA)
+
+      setDraft({
+        situation: result.situation,
+        messages: result.messages.map((m) => ({ speaker: m.speaker, text: m.text, blank: m.blank })),
+        choices: result.choices.map((c) => ({ label: c, isEmoji: false })),
+        answerLine: String(result.answerIndex + 1),
+        groupKey: aiCategory,
+        title: result.title,
+      })
+      setShowAiPanel(false)
+      setAiHint('')
+      setEditingId('new')
+    } catch (err) {
+      setAiError(err instanceof GeminiError ? err.message : 'AI 생성 중 문제가 생겼어요. 다시 시도해주세요.')
+    } finally {
+      setAiLoading(false)
+    }
   }
 
   function startEdit(item: ConversationItem) {
@@ -142,6 +264,33 @@ export default function ConversationAdmin() {
 
       {editingId ? (
         <div className={styles.form}>
+          <div className={styles.subsection}>
+            <p className={styles.subsectionTitle}>목록 분류</p>
+            <div className={styles.field}>
+              <label>제목 (관리자 목록에 표시돼요. 예: 약속 시간 조율하기)</label>
+              <input
+                type="text"
+                value={draft.title}
+                onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
+                placeholder="비워두면 상황 설명이 그대로 표시돼요"
+              />
+            </div>
+            <div className={styles.field}>
+              <label>이 대화가 대화추론 목록에서 보일 카테고리</label>
+              <select
+                value={draft.groupKey}
+                onChange={(e) => setDraft((d) => ({ ...d, groupKey: e.target.value as Draft['groupKey'] }))}
+              >
+                <option value="">(자동 — 알 수 없으면 '친구와의 대화'에 들어가요)</option>
+                {GROUP_DEFS.map((g) => (
+                  <option key={g.key} value={g.key}>
+                    {g.emoji} {g.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           <div className={styles.field}>
             <label>상황 설명</label>
             <input
@@ -284,11 +433,47 @@ export default function ConversationAdmin() {
             </button>
           </div>
         </div>
+      ) : showAiPanel ? (
+        <div className={styles.aiPanel}>
+          <p className={styles.aiPanelTitle}>✨ AI로 대화 만들기</p>
+          <div className={styles.field}>
+            <label>카테고리</label>
+            <select value={aiCategory} onChange={(e) => setAiCategory(e.target.value as ConversationGroupKey)}>
+              {GROUP_DEFS.map((g) => (
+                <option key={g.key} value={g.key}>
+                  {g.emoji} {g.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className={styles.field}>
+            <label>상황 힌트 (선택 — 비워두면 AI가 알아서 만들어요)</label>
+            <textarea
+              value={aiHint}
+              onChange={(e) => setAiHint(e.target.value)}
+              placeholder="예: 병원에서 배가 아파서 진료받는 상황"
+            />
+          </div>
+          {aiError && <p className={styles.errorText}>{aiError}</p>}
+          <div className={styles.formActions}>
+            <button type="button" className={styles.aiButton} disabled={aiLoading} onClick={handleGenerate}>
+              {aiLoading ? '생성 중...' : '✨ 생성하기'}
+            </button>
+            <button type="button" className={styles.cancelButton} onClick={cancelAiPanel} disabled={aiLoading}>
+              취소
+            </button>
+          </div>
+        </div>
       ) : (
         <>
-          <button type="button" className={styles.addButton} onClick={startNew}>
-            + 새 대화 만들기
-          </button>
+          <div className={styles.actionRow}>
+            <button type="button" className={styles.addButton} onClick={startNew}>
+              + 새 대화 만들기
+            </button>
+            <button type="button" className={styles.aiButton} onClick={openAiPanel}>
+              ✨ AI로 만들기
+            </button>
+          </div>
 
           {items === null ? (
             <p className={styles.empty}>불러오는 중이에요...</p>
@@ -334,6 +519,17 @@ export default function ConversationAdmin() {
             </div>
           )}
         </>
+      )}
+
+      {showApiKeyModal && (
+        <ApiKeyModal
+          onClose={() => setShowApiKeyModal(false)}
+          onSaved={() => {
+            setShowApiKeyModal(false)
+            setAiError(null)
+            setShowAiPanel(true)
+          }}
+        />
       )}
     </div>
   )

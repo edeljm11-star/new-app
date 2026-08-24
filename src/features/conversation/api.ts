@@ -17,6 +17,14 @@ export interface ConversationItem {
   messages: ConversationMessage[]
   choices: ConversationChoice[]
   answerIndex: number
+  // Which list group (ConversationGroupKey, kept as a plain string here to
+  // avoid a circular import with grouping.ts) this item belongs under.
+  // Unset for the original seeded items -- those are grouped by a hardcoded
+  // id lookup / id-prefix convention in grouping.ts instead.
+  groupKey?: string
+  // Short list-display title. Unset for the original seeded items -- those
+  // get theirs from a hardcoded id->title lookup in grouping.ts instead.
+  title?: string
 }
 
 interface ConversationRow {
@@ -26,6 +34,8 @@ interface ConversationRow {
   choices: ConversationChoice[]
   answer_index: number
   sort_order: number
+  group_key: string | null
+  title: string | null
 }
 
 function fromRow(row: ConversationRow): ConversationItem {
@@ -35,6 +45,8 @@ function fromRow(row: ConversationRow): ConversationItem {
     messages: row.messages,
     choices: row.choices,
     answerIndex: row.answer_index,
+    groupKey: row.group_key ?? undefined,
+    title: row.title ?? undefined,
   }
 }
 
@@ -57,6 +69,8 @@ export async function createConversation(item: Omit<ConversationItem, 'id'>): Pr
     messages: item.messages,
     choices: item.choices,
     answer_index: item.answerIndex,
+    group_key: item.groupKey ?? null,
+    title: item.title ?? null,
     sort_order: Date.now(),
   })
   if (error) throw error
@@ -70,6 +84,8 @@ export async function updateConversation(id: string, item: Omit<ConversationItem
       messages: item.messages,
       choices: item.choices,
       answer_index: item.answerIndex,
+      group_key: item.groupKey ?? null,
+      title: item.title ?? null,
     })
     .eq('id', id)
   if (error) throw error
