@@ -57,11 +57,22 @@ create table if not exists user_progress (
   primary key (user_id, feature, item_id)
 );
 
+-- One Gemini API key per admin, used by the "AI로 만들기" content-generation
+-- buttons. The key is the admin's own (free-tier) key -- entered once in
+-- the admin UI, stored here, and read back into the browser to call the
+-- Gemini API directly from the admin's own session.
+create table if not exists admin_settings (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  gemini_api_key text,
+  updated_at timestamptz not null default now()
+);
+
 alter table situations enable row level security;
 alter table stories enable row level security;
 alter table conversations enable row level security;
 alter table crossword_puzzles enable row level security;
 alter table user_progress enable row level security;
+alter table admin_settings enable row level security;
 
 drop policy if exists "public read/write" on situations;
 drop policy if exists "public read/write" on stories;
@@ -106,6 +117,13 @@ create policy "public read" on crossword_puzzles for select using (true);
 create policy "admin write" on crossword_puzzles for insert with check (auth.jwt() ->> 'email' = 'edeljm11@gmail.com');
 create policy "admin update" on crossword_puzzles for update using (auth.jwt() ->> 'email' = 'edeljm11@gmail.com') with check (auth.jwt() ->> 'email' = 'edeljm11@gmail.com');
 create policy "admin delete" on crossword_puzzles for delete using (auth.jwt() ->> 'email' = 'edeljm11@gmail.com');
+
+drop policy if exists "admin read" on admin_settings;
+drop policy if exists "admin write" on admin_settings;
+drop policy if exists "admin update" on admin_settings;
+create policy "admin read" on admin_settings for select using (auth.jwt() ->> 'email' = 'edeljm11@gmail.com');
+create policy "admin write" on admin_settings for insert with check (auth.jwt() ->> 'email' = 'edeljm11@gmail.com');
+create policy "admin update" on admin_settings for update using (auth.jwt() ->> 'email' = 'edeljm11@gmail.com') with check (auth.jwt() ->> 'email' = 'edeljm11@gmail.com');
 
 -- Every signed-in user can read/write only their own progress rows —
 -- unlike the content tables above, there's no admin-only write here.

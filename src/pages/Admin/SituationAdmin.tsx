@@ -8,7 +8,10 @@ import {
   type SituationCategory,
   type SituationItem,
 } from '../../features/situation/api'
-import { groupSituations, titleOf, type SituationGroupKey } from '../../features/situation/grouping'
+import { groupSituations, titleOf, GROUP_DEFS, type SituationGroupKey } from '../../features/situation/grouping'
+import ApiKeyModal from '../../components/Admin/ApiKeyModal'
+import { getGeminiApiKey } from '../../lib/adminSettings'
+import { generateGeminiJSON, GeminiError } from '../../lib/gemini'
 import styles from './admin.module.css'
 
 interface SceneItemDraft {
@@ -46,6 +49,86 @@ const emptyDraft: Draft = {
   questions: [emptyQuestion],
   sceneBg: 'var(--color-pink-soft)',
   items: [{ emoji: '', top: '50%', left: '50%', size: '60' }],
+}
+
+interface AiSceneItem {
+  emoji: string
+  top: string
+  left: string
+  size: number
+}
+
+interface AiQuestion {
+  category: SituationCategory
+  question: string
+  choices: string[]
+  answerIndex: number
+  explanation: string
+}
+
+interface AiResult {
+  sceneItems: AiSceneItem[]
+  questions: AiQuestion[]
+}
+
+const AI_RESPONSE_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    sceneItems: {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          emoji: { type: 'STRING' },
+          top: { type: 'STRING' },
+          left: { type: 'STRING' },
+          size: { type: 'NUMBER' },
+        },
+        required: ['emoji', 'top', 'left', 'size'],
+      },
+    },
+    questions: {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          category: { type: 'STRING', enum: ['observe', 'emotion', 'thought', 'apply'] },
+          question: { type: 'STRING' },
+          choices: { type: 'ARRAY', items: { type: 'STRING' } },
+          answerIndex: { type: 'INTEGER' },
+          explanation: { type: 'STRING' },
+        },
+        required: ['category', 'question', 'choices', 'answerIndex', 'explanation'],
+      },
+    },
+  },
+  required: ['sceneItems', 'questions'],
+}
+
+function buildPrompt(categoryLabel: string, hint: string): string {
+  return `당신은 초등학생을 위한 "상황추론" 학습 콘텐츠를 만드는 도우미입니다.
+
+다음 조건에 맞는 새로운 문제 세트를 하나 만들어주세요:
+- 카테고리: ${categoryLabel}
+${hint.trim() ? `- 상황 힌트: ${hint.trim()}` : '- 구체적인 상황은 자유롭게 만들어주세요.'}
+
+이 앱의 상황추론 문제는 이모지 몇 개로 이루어진 "장면"과, 그 장면에 대한 4개의 질문(관찰→감정→사고→적용 순서)으로 구성됩니다. 아이는 그림(이모지)만 보고 첫 번째(관찰) 질문에 답해야 하므로, 관찰 질문의 정답은 반드시 장면의 이모지만으로 명확히 알 수 있어야 하고, 정답과 모순되거나 헷갈리는 이모지가 섞이면 안 됩니다.
+
+좋은 예시 (스타일만 참고하고 그대로 베끼지 마세요):
+장면 이모지: 📚(책) ❓(물음표) 😕(당황한 얼굴)
+관찰 질문: "그림 속 친구의 모습에서 알 수 있는 것은 무엇인가요?"
+정답: "책장 앞에서 찾는 책이 안 보여 두리번거리고 있어요"
+(😕 표정과 ❓가 함께 있어서 "당황해서 무언가를 찾고 있다"는 것이 그림만으로 명확히 보입니다.)
+
+다음 형식의 JSON으로만 답하세요:
+- sceneItems: 이모지 2~4개. 각 항목은 emoji(이모지 하나), top("20%"~"70%" 사이 문자열), left("20%"~"80%" 사이 문자열), size(24~70 사이 숫자)를 가집니다. 서로 겹치지 않도록 위치를 다양하게 배치하세요. 등장인물의 표정을 나타내는 이모지를 반드시 포함해서, 관찰 질문의 정답이 그림만으로 드러나게 하세요.
+- questions: 정확히 4개, 순서대로 category가 "observe","emotion","thought","apply" 여야 합니다.
+  - observe(관찰): 그림 속 상황을 보면 무엇을 알 수 있는지 묻는 질문. 정답은 장면의 이모지만으로 명확히 판단 가능해야 합니다.
+  - emotion(감정): 등장인물의 마음이나 감정을 묻는 질문.
+  - thought(사고): 이 상황을 그냥 지나치면 어떻게 될지, 왜 문제가 되는지를 묻는 질문.
+  - apply(적용): 이런 상황에서 할 수 있는 가장 좋은 행동을 묻는 질문.
+  - 각 질문은 choices 4개(정답 1개 + 그럴듯하지만 명백히 틀린 오답 3개), answerIndex(0부터 시작하는 정답 순번), explanation(정답을 고른 뒤 보여줄 한 문장 설명)을 가집니다.
+  - 모든 텍스트는 한국어로, 초등학생이 이해하기 쉬운 말투("~해요", "~인가요?")로 작성하세요.`
 }
 
 function draftFromItem(item: SituationItem): Draft {
@@ -99,6 +182,13 @@ export default function SituationAdmin() {
   const [saving, setSaving] = useState(false)
   const [openGroups, setOpenGroups] = useState<Set<SituationGroupKey>>(new Set())
 
+  const [showAiPanel, setShowAiPanel] = useState(false)
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false)
+  const [aiCategory, setAiCategory] = useState<SituationGroupKey>(GROUP_DEFS[0].key)
+  const [aiHint, setAiHint] = useState('')
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiError, setAiError] = useState<string | null>(null)
+
   const groups = useMemo(() => (items ? groupSituations(items) : []), [items])
 
   function toggleGroup(key: SituationGroupKey) {
@@ -121,6 +211,59 @@ export default function SituationAdmin() {
   function startNew() {
     setDraft(emptyDraft)
     setEditingId('new')
+  }
+
+  async function openAiPanel() {
+    const key = await getGeminiApiKey()
+    if (!key) {
+      setShowApiKeyModal(true)
+      return
+    }
+    setAiError(null)
+    setShowAiPanel(true)
+  }
+
+  function cancelAiPanel() {
+    setShowAiPanel(false)
+    setAiError(null)
+  }
+
+  async function handleGenerate() {
+    setAiLoading(true)
+    setAiError(null)
+    try {
+      const key = await getGeminiApiKey()
+      if (!key) {
+        setShowApiKeyModal(true)
+        return
+      }
+      const categoryLabel = GROUP_DEFS.find((g) => g.key === aiCategory)?.label ?? aiCategory
+      const result = await generateGeminiJSON<AiResult>(key, buildPrompt(categoryLabel, aiHint), AI_RESPONSE_SCHEMA)
+
+      setDraft({
+        sceneBg: emptyDraft.sceneBg,
+        items: result.sceneItems.map((it) => ({
+          emoji: it.emoji,
+          top: it.top,
+          left: it.left,
+          size: String(it.size),
+        })),
+        questions: result.questions.map((q) => ({
+          category: q.category,
+          question: q.question,
+          choicesText: q.choices.join('\n'),
+          answerLine: String(q.answerIndex + 1),
+          explanation: q.explanation,
+        })),
+      })
+      setShowAiPanel(false)
+      setAiHint('')
+      setEditingId('new')
+    } catch (err) {
+      setAiError(err instanceof GeminiError ? err.message : 'AI 생성 중 문제가 생겼어요. 다시 시도해주세요.')
+    } finally {
+      setAiLoading(false)
+    }
   }
 
   function startEdit(item: SituationItem) {
@@ -291,11 +434,47 @@ export default function SituationAdmin() {
             </button>
           </div>
         </div>
+      ) : showAiPanel ? (
+        <div className={styles.aiPanel}>
+          <p className={styles.aiPanelTitle}>✨ AI로 문제 만들기</p>
+          <div className={styles.field}>
+            <label>카테고리</label>
+            <select value={aiCategory} onChange={(e) => setAiCategory(e.target.value as SituationGroupKey)}>
+              {GROUP_DEFS.filter((g) => g.key !== 'etc').map((g) => (
+                <option key={g.key} value={g.key}>
+                  {g.emoji} {g.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className={styles.field}>
+            <label>상황 힌트 (선택 — 비워두면 AI가 알아서 만들어요)</label>
+            <textarea
+              value={aiHint}
+              onChange={(e) => setAiHint(e.target.value)}
+              placeholder="예: 도서관에서 친구가 큰 소리로 떠드는 상황"
+            />
+          </div>
+          {aiError && <p className={styles.errorText}>{aiError}</p>}
+          <div className={styles.formActions}>
+            <button type="button" className={styles.aiButton} disabled={aiLoading} onClick={handleGenerate}>
+              {aiLoading ? '생성 중...' : '✨ 생성하기'}
+            </button>
+            <button type="button" className={styles.cancelButton} onClick={cancelAiPanel} disabled={aiLoading}>
+              취소
+            </button>
+          </div>
+        </div>
       ) : (
         <>
-          <button type="button" className={styles.addButton} onClick={startNew}>
-            + 새 문제 만들기
-          </button>
+          <div className={styles.actionRow}>
+            <button type="button" className={styles.addButton} onClick={startNew}>
+              + 새 문제 만들기
+            </button>
+            <button type="button" className={styles.aiButton} onClick={openAiPanel}>
+              ✨ AI로 만들기
+            </button>
+          </div>
 
           {items === null ? (
             <p className={styles.empty}>불러오는 중이에요...</p>
@@ -344,6 +523,17 @@ export default function SituationAdmin() {
             </div>
           )}
         </>
+      )}
+
+      {showApiKeyModal && (
+        <ApiKeyModal
+          onClose={() => setShowApiKeyModal(false)}
+          onSaved={() => {
+            setShowApiKeyModal(false)
+            setAiError(null)
+            setShowAiPanel(true)
+          }}
+        />
       )}
     </div>
   )
