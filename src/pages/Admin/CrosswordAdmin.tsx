@@ -10,6 +10,7 @@ import {
 import { groupByCategory, categoryOf } from '../../features/crossword/grouping'
 import { generateCrosswordLayout, type WordInput } from '../../features/crossword/generateLayout'
 import ApiKeyModal from '../../components/Admin/ApiKeyModal'
+import ScrollToTopButton from '../../components/Admin/ScrollToTopButton'
 import { getGeminiApiKey } from '../../lib/adminSettings'
 import { generateGeminiJSON, GeminiError } from '../../lib/gemini'
 import styles from './admin.module.css'
@@ -558,6 +559,7 @@ export default function CrosswordAdmin() {
           }}
         />
       )}
+      <ScrollToTopButton />
     </div>
   )
 }

@@ -10,6 +10,7 @@ import {
 } from '../../features/situation/api'
 import { groupSituations, titleOf, GROUP_DEFS, type SituationGroupKey } from '../../features/situation/grouping'
 import ApiKeyModal from '../../components/Admin/ApiKeyModal'
+import ScrollToTopButton from '../../components/Admin/ScrollToTopButton'
 import { getGeminiApiKey } from '../../lib/adminSettings'
 import { generateGeminiJSON, GeminiError } from '../../lib/gemini'
 import styles from './admin.module.css'
@@ -593,6 +594,7 @@ export default function SituationAdmin() {
           }}
         />
       )}
+      <ScrollToTopButton />
     </div>
   )
 }

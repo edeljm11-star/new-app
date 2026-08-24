@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { listStories, createStory, updateStory, deleteStory, type Story, type VocabQuizItem } from '../../features/story/api'
 import { groupStories, GROUP_DEFS, type StoryGroupKey } from '../../features/story/grouping'
 import ApiKeyModal from '../../components/Admin/ApiKeyModal'
+import ScrollToTopButton from '../../components/Admin/ScrollToTopButton'
 import { getGeminiApiKey } from '../../lib/adminSettings'
 import { generateGeminiJSON, GeminiError } from '../../lib/gemini'
 import styles from './admin.module.css'
@@ -727,6 +728,7 @@ export default function StoryAdmin() {
           }}
         />
       )}
+      <ScrollToTopButton />
     </div>
   )
 }
